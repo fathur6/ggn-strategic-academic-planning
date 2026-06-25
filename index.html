@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Pemantauan PTA 2026 - PPS</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        unisza: { blue: '#002C5F', yellow: '#FBB03B', light: '#E6EAF0' }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+    <style>
+        body { background-color: #0b1120; color: #e2e8f0; }
+        .glass-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .kpi-card {
+            background: linear-gradient(135deg, #1e293b, #111827);
+            border-left: 4px solid;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
+        .kpi-card-l7 { border-left-color: #3b82f6; background: linear-gradient(135deg, #1e293b, #111827), radial-gradient(circle at top right, rgba(59,130,246,0.08), transparent 70%); background-blend-mode: normal; }
+        .kpi-card-l8 { border-left-color: #f59e0b; background: linear-gradient(135deg, #1e293b, #111827), radial-gradient(circle at top right, rgba(245,158,11,0.08), transparent 70%); background-blend-mode: normal; }
+        .kpi-card-l10 { border-left-color: #10b981; background: linear-gradient(135deg, #1e293b, #111827), radial-gradient(circle at top right, rgba(16,185,129,0.08), transparent 70%); background-blend-mode: normal; }
+        .status-badge-selesai { background: #064e3b; color: #6ee7b7; border: 1px solid #065f46; }
+        .status-badge-berjalan { background: #78350f; color: #fcd34d; border: 1px solid #92400e; }
+        .status-badge-belum { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+        .progress-bar-bg { background: #1e293b; border-radius: 9999px; overflow: hidden; height: 8px; }
+        .progress-bar-l7 { background: linear-gradient(90deg, #3b82f6, #60a5fa); height: 100%; border-radius: 9999px; transition: width 0.7s ease; }
+        .progress-bar-l8 { background: linear-gradient(90deg, #f59e0b, #fbbf24); height: 100%; border-radius: 9999px; transition: width 0.7s ease; }
+        .progress-bar-l10 { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; border-radius: 9999px; transition: width 0.7s ease; }
+        .filter-chip { padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid #334155; color: #94a3b8; background: #1e293b; }
+        .filter-chip:hover { border-color: #475569; color: #e2e8f0; }
+        .filter-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+        .table-container::-webkit-scrollbar, .modal-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .table-container::-webkit-scrollbar-track, .modal-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb, .modal-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover, .modal-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .entries-scroll::-webkit-scrollbar { width: 5px; }
+        .entries-scroll::-webkit-scrollbar-track { background: transparent; }
+        .entries-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .entries-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .login-overlay { background-color: rgba(15,23,42,0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 1000; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%,90% { transform: translate3d(-1px,0,0); } 20%,80% { transform: translate3d(2px,0,0); } 30%,50%,70% { transform: translate3d(-4px,0,0); } 40%,60% { transform: translate3d(4px,0,0); } }
+        .sync-active .sync-icon-rotate { animation: spin 2s linear infinite; }
+        @keyframes spin { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+    </style>
+</head>
+<body class="text-slate-200 antialiased min-h-screen m-0 relative">
+
+    <div id="accessDeniedOverlay" class="fixed inset-0 z-[1000] hidden flex-col items-center justify-center bg-gray-900 bg-opacity-60 backdrop-blur-sm">
+        <div class="bg-white/95 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-white max-w-md w-full text-center fade-in">
+            <i class="fa-solid fa-shield-halved text-5xl text-red-500 mx-auto mb-4"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Akses Dihadkan</h2>
+            <p class="text-slate-600 mb-2 leading-relaxed">Modul ini hanya boleh diakses menggunakan akaun <span class="font-semibold text-slate-800">@unisza.edu.my</span>.</p>
+            <p class="text-slate-600 mb-6 leading-relaxed">Akaun anda (<span class="font-semibold text-slate-800" id="deniedUserEmail">---</span>) bukan akaun yang dibenarkan.</p>
+            <a id="accountChooserLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full bg-unisza-blue hover:bg-blue-800 text-white font-semibold px-5 py-3 rounded-lg transition-colors mb-3">
+                <i class="fa-solid fa-repeat"></i> Tukar Akaun Google
+            </a>
+            <button onclick="window.location.reload()" class="inline-flex items-center justify-center gap-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-lg transition-colors mb-4 text-sm">
+                <i class="fa-solid fa-rotate-right"></i> Muat Semula Halaman
+            </button>
+            <p class="text-xs text-slate-400 font-medium">Sila hubungi pentadbir sistem jika anda memerlukan akses.</p>
+        </div>
+    </div>
+
+    <!-- PREVIEW OVERLAY -->
+    <div id="filePreviewOverlay" class="fixed inset-0 z-[400] hidden flex-col items-center justify-center bg-gray-900 bg-opacity-80 backdrop-blur-sm p-4 sm:p-6">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-full flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+                <h3 class="font-bold text-lg text-gray-800 truncate pr-4 flex items-center" id="previewTitle">
+                    <i class="fa-solid fa-file-pdf text-red-500 mr-2"></i> Pratonton Fail
+                </h3>
+                <div class="flex items-center space-x-3">
+                    <a id="previewOpenBtn" href="#" target="_blank" class="text-xs font-bold bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg transition shadow-sm flex items-center"><i class="fa-solid fa-arrow-up-right-from-square mr-2"></i> Buka Tab</a>
+                    <a id="previewDownloadBtn" href="#" target="_blank" class="text-xs font-bold bg-unisza-blue hover:bg-blue-800 text-white px-4 py-2 rounded-lg transition shadow-sm flex items-center"><i class="fa-solid fa-cloud-arrow-down mr-2"></i> Muat Turun</a>
+                    <button onclick="closePreviewOverlay()" class="text-gray-400 hover:text-red-500 bg-gray-200 hover:bg-red-100 rounded-full w-8 h-8 flex items-center justify-center transition flex-shrink-0"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+            <div id="previewMultiFileNav" class="bg-blue-50 px-4 py-3 border-b border-blue-100 flex gap-2 overflow-x-auto flex-shrink-0 entries-scroll" style="display: none;"></div>
+            <div class="flex-grow bg-gray-200 relative overflow-hidden flex flex-col justify-center">
+                <div id="previewLoading" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-50 z-20">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3 text-unisza-blue"></i>
+                    <span class="font-bold tracking-wider uppercase text-sm mt-2 text-slate-700">Memuatkan Dokumen...</span>
+                    <span class="text-[10px] mt-4 px-8 text-center text-gray-400 font-medium max-w-lg leading-relaxed">Jika paparan ini terhalang oleh log masuk Google, sila klik butang <b>Buka Tab</b> di bahagian atas untuk melihat di tab pelayar yang baharu.</span>
+                </div>
+                <iframe id="previewIframe" class="w-full h-full border-0 relative z-10 hidden" onload="document.getElementById('previewLoading').style.display='none'; this.style.display='block';"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION -->
+    <div id="deleteTindakanOverlay" class="fixed inset-0 z-[300] hidden flex-col items-center justify-center bg-gray-900 bg-opacity-60 backdrop-blur-sm px-4">
+        <div class="bg-white border border-red-100 rounded-2xl shadow-2xl p-8 w-full max-w-md text-center transform scale-100">
+            <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-trash-can"></i></div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Anda ingin keluarkan tindakan ini?</h3>
+            <p class="text-gray-600 text-sm mb-6">Tindakan dan semua rekod di dalamnya akan dibuang sepenuhnya dari dashboard.</p>
+            <div class="flex justify-center space-x-3">
+                <button onclick="closeDeleteTindakanOverlay()" class="px-5 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-200 transition shadow-sm">Batal</button>
+                <button onclick="confirmDeleteTindakan()" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition shadow-sm">Buang Tindakan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECURE DELETE -->
+    <div id="passwordTindakanOverlay" class="fixed inset-0 z-[300] hidden flex-col items-center justify-center bg-gray-900 bg-opacity-60 backdrop-blur-sm px-4">
+        <div class="bg-white border border-blue-100 rounded-2xl shadow-2xl p-8 w-full max-w-md text-center transform scale-100">
+            <div class="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-lock"></i></div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Pengesahan Keselamatan</h3>
+            <p class="text-gray-600 text-sm mb-4">Minta maaf, pengesahan tambahan diperlukan untuk membuang tindakan keseluruhan.</p>
+            <div class="mb-5 text-left relative">
+                <input type="password" id="adminPasswordInput" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Sahkan Kata Laluan" onkeypress="if(event.key === 'Enter') { event.preventDefault(); submitDeleteTindakan(); }">
+                <p id="adminPasswordError" class="text-red-500 text-xs font-semibold mt-2 hidden absolute">Kata laluan tidak sah.</p>
+            </div>
+            <div class="flex justify-center space-x-3 mt-4">
+                <button onclick="closePasswordTindakanOverlay()" class="px-5 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-200 transition shadow-sm">Batal</button>
+                <button id="btnConfirmPwd" onclick="submitDeleteTindakan()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm">Sahkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEMASKINI MODAL -->
+    <div id="updateModal" class="absolute inset-0 z-[200] hidden flex-col items-center justify-start px-4 bg-gray-900 bg-opacity-60 backdrop-blur-sm pb-20">
+        <div id="updateModalBox" class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col transform transition-all scale-100 relative max-h-[85vh] mt-10">
+            <div id="deleteOverlay" class="absolute inset-0 z-[250] hidden flex-col items-center justify-center bg-white bg-opacity-90 backdrop-blur-sm rounded-2xl">
+                <div class="bg-white border border-red-100 rounded-2xl shadow-2xl p-8 w-full max-w-md text-center transform scale-100">
+                    <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Pengesahan Buang Data</h3>
+                    <p class="text-gray-600 text-sm mb-6">Adakah anda pasti untuk buang rekod <br><strong id="deleteProjectName" class="text-gray-900 text-base"></strong>?</p>
+                    <div class="flex justify-center space-x-3">
+                        <button onclick="closeDeleteModal()" class="px-5 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-200 transition shadow-sm">Batal</button>
+                        <button id="btnConfirmDelete" onclick="confirmDeleteEntry()" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition shadow-sm">Ya, Buang Rekod</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="editTindakanOverlay" class="absolute inset-0 z-[250] hidden flex-col items-center justify-center bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4">
+                <div class="bg-white border border-blue-100 rounded-2xl shadow-2xl p-6 w-full max-w-2xl transform scale-100 overflow-y-auto max-h-full">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Adakah anda ingin ubah tindakan ini?</h3>
+                    <div class="space-y-4">
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Lonjakan</label><input type="text" id="edit_t_lonjakan" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Aktiviti</label><input type="text" id="edit_t_aktiviti" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Definisi Operasi (OD)</label><textarea id="edit_t_od" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></textarea></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Petunjuk Prestasi (PI)</label><textarea id="edit_t_pi" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></textarea></div>
+                            <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Sasaran Indikator (Nilai & Unit)</label><input type="text" id="edit_t_sasaran" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50" placeholder="Cth: 1500 Pelajar"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button onclick="closeEditTindakanOverlay()" class="px-5 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200 shadow-sm">Batal</button>
+                        <button onclick="submitEditTindakan()" id="btnConfirmEditTindakan" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm">Ubah Tindakan</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="editSasaranSukuanOverlay" class="absolute inset-0 z-[250] hidden flex-col items-center justify-center bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-4">
+                <div class="bg-white border border-blue-100 rounded-2xl shadow-2xl p-6 w-full max-w-xl transform scale-100 overflow-y-auto max-h-full">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Adakah anda ingin ubah sasaran sukuan ini?</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Sasaran Q1</label><input type="text" id="edit_q1_target" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Sasaran Q2</label><input type="text" id="edit_q2_target" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Sasaran Q3</label><input type="text" id="edit_q3_target" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-500 uppercase">Sasaran Q4</label><input type="text" id="edit_q4_target" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-unisza-blue outline-none bg-gray-50"></div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button onclick="closeEditSasaranSukuanOverlay()" class="px-5 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200 shadow-sm">Batal</button>
+                        <button onclick="submitEditSasaranSukuan()" id="btnConfirmEditSasaran" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm">Ubah Sasaran</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-2xl flex-shrink-0">
+                <h3 class="font-bold text-lg text-gray-800"><i class="fa-solid fa-pen-to-square text-unisza-blue mr-2"></i>Kemaskini Pencapaian PTA</h3>
+                <button onclick="closeUpdateModal()" class="text-gray-400 hover:text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 flex-grow overflow-y-auto modal-scroll space-y-6">
+                
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 text-sm space-y-3 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">Rujukan PTA 2026</div>
+                    <div class="grid grid-cols-1 gap-3 pr-8">
+                        <div><span class="font-bold text-blue-900">Lonjakan:</span> <span id="m_lonjakan" class="text-blue-800 ml-1"></span></div>
+                        <div><span class="font-bold text-blue-900">Aktiviti:</span> <span id="m_aktiviti" class="text-blue-800 font-medium ml-1"></span></div>
+                        <div><span class="font-bold text-blue-900">Definisi Operasi (OD):</span><div id="m_od" class="mt-1 text-blue-800 italic bg-white bg-opacity-60 p-3 rounded-lg border border-blue-100 leading-relaxed text-xs"></div></div>
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <div><span class="font-bold text-blue-900 block">Petunjuk Prestasi (PI):</span> <span id="m_pi" class="text-blue-700 text-xs"></span></div>
+                            <div><span class="font-bold text-blue-900 block">Sasaran Indikator:</span> <span id="m_sasaran" class="text-blue-800 font-bold bg-white px-2 py-1 rounded shadow-sm border border-blue-100 inline-block mt-1"></span></div>
+                        </div>
+                    </div>
+                    <button onclick="btnOpenEditTindakanOverlay()" class="admin-only absolute bottom-3 right-3 w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition shadow-sm opacity-60 hover:opacity-100" title="Ubah Maklumat Tindakan"><i class="fa-solid fa-pencil"></i></button>
+                </div>
+
+                <div class="mt-6">
+                    <div class="flex flex-wrap justify-end items-center gap-3 mb-2">
+                        <button onclick="btnSaveLaporanSukuanOnly()" id="btnSaveSukuan" class="admin-only bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-3 py-1.5 rounded-lg transition shadow-sm flex items-center text-[10px] font-bold uppercase tracking-wider">
+                            <i class="fa-solid fa-save mr-1.5" id="iconSaveSukuan"></i> Simpan Pemantauan Sukuan
+                        </button>
+                        <label class="flex items-center cursor-pointer space-x-2 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100 transition shadow-sm">
+                            <input type="checkbox" id="kpi_tercapai_status" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer disabled:opacity-50">
+                            <span class="text-[11px] font-bold text-green-800 uppercase tracking-wider select-none">Tandakan Jika KPI Tercapai Keseluruhan</span>
+                        </label>
+                    </div>
+
+                    <div class="bg-[#eff6ff] border border-blue-200 rounded-xl p-5 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-xs font-bold text-blue-900 uppercase tracking-widest flex items-center"><i class="fa-solid fa-chart-line mr-2 text-blue-600"></i> Laporan Pemantauan Sukuan</h4>
+                            <button onclick="btnOpenEditSasaranSukuanOverlay()" class="admin-only w-7 h-7 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition shadow-sm opacity-60 hover:opacity-100" title="Ubah Sasaran Sukuan"><i class="fa-solid fa-pencil text-[10px]"></i></button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div id="q1_card" class="bg-white border border-blue-100 rounded-lg p-3 hover:border-blue-300 transition-colors shadow-sm">
+                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3"><span class="font-extrabold text-blue-800 text-sm">Q1</span><span class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase">Jan - Mac</span></div>
+                                <label class="text-[9px] text-gray-500 font-semibold uppercase mb-1 block">Sasaran: <span id="q1_target_text" class="text-blue-500 normal-case font-bold"></span></label>
+                                <input type="text" id="q1_input" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none transition bg-gray-50 focus:bg-white placeholder-gray-300 font-medium text-gray-700" placeholder="Cth: 400">
+                                <div class="mt-3 flex space-x-3 text-[10px] font-medium text-gray-600">
+                                    <label class="flex items-center cursor-pointer hover:text-green-600"><input type="radio" name="q1_status" value="tercapai" class="mr-1 w-3 h-3 text-green-500 focus:ring-green-400 border-gray-300" onchange="toggleQuarterStatus('q1')"> Tercapai</label>
+                                    <label class="flex items-center cursor-pointer hover:text-red-600"><input type="radio" name="q1_status" value="belum" class="mr-1 w-3 h-3 text-red-500 focus:ring-red-400 border-gray-300" onchange="toggleQuarterStatus('q1')"> Belum</label>
+                                </div>
+                            </div>
+                            <div id="q2_card" class="bg-white border border-blue-100 rounded-lg p-3 hover:border-blue-300 transition-colors shadow-sm">
+                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3"><span class="font-extrabold text-blue-800 text-sm">Q2</span><span class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase">Apr - Jun</span></div>
+                                <label class="text-[9px] text-gray-500 font-semibold uppercase mb-1 block">Sasaran: <span id="q2_target_text" class="text-blue-500 normal-case font-bold"></span></label>
+                                <input type="text" id="q2_input" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none transition bg-gray-50 focus:bg-white placeholder-gray-300 font-medium text-gray-700" placeholder="Cth: 850">
+                                <div class="mt-3 flex space-x-3 text-[10px] font-medium text-gray-600">
+                                    <label class="flex items-center cursor-pointer hover:text-green-600"><input type="radio" name="q2_status" value="tercapai" class="mr-1 w-3 h-3 text-green-500 focus:ring-green-400 border-gray-300" onchange="toggleQuarterStatus('q2')"> Tercapai</label>
+                                    <label class="flex items-center cursor-pointer hover:text-red-600"><input type="radio" name="q2_status" value="belum" class="mr-1 w-3 h-3 text-red-500 focus:ring-red-400 border-gray-300" onchange="toggleQuarterStatus('q2')"> Belum</label>
+                                </div>
+                            </div>
+                            <div id="q3_card" class="bg-white border border-blue-100 rounded-lg p-3 hover:border-blue-300 transition-colors shadow-sm">
+                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3"><span class="font-extrabold text-blue-800 text-sm">Q3</span><span class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase">Jul - Sep</span></div>
+                                <label class="text-[9px] text-gray-500 font-semibold uppercase mb-1 block">Sasaran: <span id="q3_target_text" class="text-blue-500 normal-case font-bold"></span></label>
+                                <input type="text" id="q3_input" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none transition bg-gray-50 focus:bg-white placeholder-gray-300 font-medium text-gray-700" placeholder="Cth: 1200">
+                                <div class="mt-3 flex space-x-3 text-[10px] font-medium text-gray-600">
+                                    <label class="flex items-center cursor-pointer hover:text-green-600"><input type="radio" name="q3_status" value="tercapai" class="mr-1 w-3 h-3 text-green-500 focus:ring-green-400 border-gray-300" onchange="toggleQuarterStatus('q3')"> Tercapai</label>
+                                    <label class="flex items-center cursor-pointer hover:text-red-600"><input type="radio" name="q3_status" value="belum" class="mr-1 w-3 h-3 text-red-500 focus:ring-red-400 border-gray-300" onchange="toggleQuarterStatus('q3')"> Belum</label>
+                                </div>
+                            </div>
+                            <div id="q4_card" class="bg-white border border-blue-100 rounded-lg p-3 hover:border-blue-300 transition-colors shadow-sm">
+                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-3"><span class="font-extrabold text-blue-800 text-sm">Q4</span><span class="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase">Okt - Dis</span></div>
+                                <label class="text-[9px] text-gray-500 font-semibold uppercase mb-1 block">Sasaran: <span id="q4_target_text" class="text-blue-500 normal-case font-bold"></span></label>
+                                <input type="text" id="q4_input" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none transition bg-gray-50 focus:bg-white placeholder-gray-300 font-medium text-gray-700" placeholder="Cth: 1500">
+                                <div class="mt-3 flex space-x-3 text-[10px] font-medium text-gray-600">
+                                    <label class="flex items-center cursor-pointer hover:text-green-600"><input type="radio" name="q4_status" value="tercapai" class="mr-1 w-3 h-3 text-green-500 focus:ring-green-400 border-gray-300" onchange="toggleQuarterStatus('q4')"> Tercapai</label>
+                                    <label class="flex items-center cursor-pointer hover:text-red-600"><input type="radio" name="q4_status" value="belum" class="mr-1 w-3 h-3 text-red-500 focus:ring-red-400 border-gray-300" onchange="toggleQuarterStatus('q4')"> Belum</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modalEntriesSection" class="hidden flex-col pt-4">
+                    <div class="bg-purple-600 rounded-t-xl px-4 py-3 text-white font-bold flex items-center shadow-sm relative z-10"><i class="fa-regular fa-circle-check mr-2 text-lg"></i> REKOD BUKTI / SUB-AKTIVITI</div>
+                    <div class="border border-gray-200 rounded-b-xl border-t-0 -mt-1 overflow-hidden bg-white shadow-sm">
+                        <div class="max-h-60 overflow-y-auto entries-scroll pr-1">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-purple-50 text-purple-900 text-[10px] uppercase tracking-wider sticky top-0 z-20">
+                                    <tr><th class="px-4 py-3 w-12 text-center border-b border-purple-100">Bil</th><th class="px-4 py-3 border-b border-purple-100">Nama Rekod / Laporan</th><th class="px-4 py-3 w-32 text-center border-b border-purple-100">Tarikh</th><th class="px-4 py-3 w-24 text-center border-b border-purple-100 admin-only">Tindakan</th></tr>
+                                </thead>
+                                <tbody id="modalEntriesBody" class="divide-y divide-gray-100 text-xs"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="admin-only flex items-center pt-2"><div class="flex-grow border-t border-gray-200"></div><span id="formSectionTitle" class="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">TAMBAH REKOD BARU</span><div class="flex-grow border-t border-gray-200"></div></div>
+
+                <div class="admin-only space-y-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative" id="formContainerBox">
+                    <div id="editModeIndicator" class="hidden absolute top-0 left-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1 rounded-br-lg rounded-tl-xl uppercase tracking-wider shadow-sm z-10">Mod Kemaskini Rekod Sedia Ada</div>
+                    <div class="pt-2"><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Nama Projek / Laporan Bukti</label><input type="text" id="m_form_nama" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Cth: Laporan Suku Pertama 2026"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Fakulti</label><select id="m_form_fakulti" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white"><option value="">Pilih Fakulti...</option><option value="FKI">FKI - Fakulti Pengajian Kontemporari Islam</option><option value="FPP">FPP - Fakulti Perniagaan dan Pengurusan</option><option value="FBK">FBK - Fakulti Bahasa dan Komunikasi</option><option value="FIK">FIK - Fakulti Informatik dan Komputeran</option><option value="FP">FP - Fakulti Perubatan</option><option value="FSSG">FSSG - Fakulti Sains Sosial Gunaan</option><option value="FSK">FSK - Fakulti Sains Kesihatan</option><option value="FBIM">FBIM - Fakulti Bioresumber dan Industri Makanan</option><option value="FUHA">FUHA - Fakulti Undang-undang dan Hubungan Antarabangsa</option><option value="FRIT">FRIT - Fakulti Reka Bentuk Inovatif dan Teknologi</option><option value="FF">FF - Fakulti Farmasi</option><option value="ESERI">ESERI</option><option value="INSPIRE">INSPIRE</option><option value="Lain-lain">Lain-lain</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Tahap Pengajian</label><select id="m_form_tahap" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white"><option value="">Pilih Tahap...</option><option value="Doktor Falsafah">Doktor Falsafah</option><option value="Sarjana">Sarjana</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">No. Matrik</label><input type="text" id="m_form_matrik" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Cth: S01234"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Tarikh Rekod / Aktiviti</label><input type="date" id="m_form_tarikh" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white"></div>
+                    </div>
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Catatan / Ulasan Tambahan</label><textarea id="m_form_catatan" rows="3" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Berikan butiran lanjut mengenai rekod ini..."></textarea></div>
+                    <div id="existingAttachmentsBox" class="hidden"><label class="block text-xs font-bold text-blue-600 uppercase tracking-wide mb-2 ml-1">Lampiran Sedia Ada dalam Drive</label><div id="existingAttachmentsList" class="flex flex-wrap gap-2"></div></div>
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 ml-1">Tambah Lampiran Baru (Boleh Pilih Berbilang Fail)</label><div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer group relative"><input type="file" id="fileInput" class="absolute inset-0 opacity-0 cursor-pointer" multiple onchange="handleMultipleFiles(this)"><div id="fileInfoDisplay"><i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-300 group-hover:text-unisza-blue mb-2 transition"></i><p class="text-sm font-semibold text-gray-600 group-hover:text-unisza-blue">Klik atau seret fail ke sini</p><p class="text-[11px] text-gray-400 mt-1">Sila muat naik dokumen bukti (PDF, PNG, JPG, DOCX)</p></div></div><div id="newFilesList" class="mt-3 space-y-2"></div></div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center rounded-b-2xl flex-shrink-0">
+                <div>
+                    <button type="button" id="btnCancelEdit" class="hidden text-gray-500 hover:text-gray-700 text-xs font-bold uppercase tracking-widest flex items-center px-3 py-2 bg-gray-200 rounded-lg transition" onclick="window.btnClearModalForm()"><i class="fa-solid fa-arrow-rotate-left mr-2"></i> Batal Edit</button>
+                    <button type="button" id="btnClearForm" class="admin-only text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-widest flex items-center px-2" onclick="window.btnClearModalForm()"><i class="fa-regular fa-trash-can mr-2"></i> Kosongkan Borang</button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span id="fileProcessingStatus" class="hidden text-[10px] font-bold tracking-wider uppercase flex items-center mr-2 transition-all"></span>
+                    <button onclick="closeUpdateModal()" class="px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100 transition shadow-sm">Tutup</button>
+                    <button onclick="saveUpdateModal()" id="btnSaveUpdate" class="admin-only px-6 py-2.5 bg-unisza-blue hover:bg-blue-800 text-white rounded-xl text-sm font-bold transition shadow-md flex items-center"><i class="fa-solid fa-cloud-arrow-up mr-2" id="iconSaveUpdate"></i> <span id="btnSaveText">Simpan Rekod</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addAktivitiModal" class="absolute inset-0 z-[200] hidden flex-col items-center justify-start px-4 bg-gray-900 bg-opacity-60 backdrop-blur-sm pb-20">
+        <div id="addAktivitiModalBox" class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col transform transition-all scale-100 relative max-h-[85vh] mt-10">
+            
+            <div id="confirmAddOverlay" class="absolute inset-0 z-[250] hidden flex-col items-center justify-center bg-white bg-opacity-90 backdrop-blur-sm rounded-2xl">
+                <div class="bg-white border border-blue-100 rounded-2xl shadow-2xl p-8 w-full max-w-md text-center transform scale-100">
+                    <div class="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-circle-question"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Pengesahan Tambah Tindakan</h3>
+                    <p class="text-gray-600 text-sm mb-6">Anda pasti untuk menambah aktiviti dalam pelan tindakan ini?</p>
+                    <div class="flex justify-center space-x-3"><button onclick="closeConfirmAddOverlay()" class="px-5 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-200 transition shadow-sm">Batal</button><button onclick="submitAddAktiviti()" id="btnConfirmAdd" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm">Ya, Tambah</button></div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-2xl flex-shrink-0">
+                <h3 class="font-bold text-lg text-gray-800"><i class="fa-solid fa-plus-circle text-unisza-blue mr-2"></i>Tambah Tindakan Akademik</h3>
+                <button onclick="closeAddAktivitiModal()" class="text-gray-400 hover:text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 flex-grow overflow-y-auto modal-scroll space-y-6">
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Lonjakan</label><input type="text" id="add_lonjakan" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Cth: Lonjakan 7: Keunggulan Global"></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Aktiviti</label><input type="text" id="add_aktiviti" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Cth: Pertukaran Pelajar Antarabangsa"></div>
+                <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Definisi Operasi (OD)</label><textarea id="add_od" rows="3" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Terangkan definisi operasi aktiviti ini..."></textarea></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Petunjuk Prestasi (PI)</label><input type="text" id="add_pi" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Cth: Number of exchange programs"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Indikator Sasaran (Unit & Nilai)</label><input type="text" id="add_sasaran" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-unisza-blue outline-none transition bg-gray-50 focus:bg-white" placeholder="Cth: 20 Pelajar"></div>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 shadow-sm">
+                    <h4 class="text-xs font-bold text-blue-900 uppercase tracking-widest mb-4"><i class="fa-solid fa-bullseye mr-2"></i>Sasaran Mengikut Sukuan (Q1 - Q4)</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div><label class="text-[10px] font-bold text-blue-800 uppercase block mb-1">Q1 (Jan - Mac)</label><input type="text" id="add_q1" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sasaran Q1"></div>
+                        <div><label class="text-[10px] font-bold text-blue-800 uppercase block mb-1">Q2 (Apr - Jun)</label><input type="text" id="add_q2" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sasaran Q2"></div>
+                        <div><label class="text-[10px] font-bold text-blue-800 uppercase block mb-1">Q3 (Jul - Sep)</label><input type="text" id="add_q3" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sasaran Q3"></div>
+                        <div><label class="text-[10px] font-bold text-blue-800 uppercase block mb-1">Q4 (Okt - Dis)</label><input type="text" id="add_q4" class="w-full text-xs border border-gray-200 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sasaran Q4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3 rounded-b-2xl flex-shrink-0">
+                <button onclick="closeAddAktivitiModal()" class="px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100 transition shadow-sm">Batal</button>
+                <button onclick="confirmAddAktiviti()" class="px-6 py-2.5 bg-unisza-blue hover:bg-blue-800 text-white rounded-xl text-sm font-bold transition shadow-md flex items-center"><i class="fa-solid fa-plus mr-2"></i> Tambah Aktiviti</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardScreen" class="flex flex-col min-h-screen w-full">
+        <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg sticky top-0 z-50 overflow-hidden border-b border-slate-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center relative z-10">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 p-1.5 rounded-xl flex items-center justify-center w-10 h-10 shadow-lg">
+                        <img src="" alt="Logo" class="max-h-full max-w-full object-contain brightness-110">
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-white leading-tight">Dashboard Pemantauan PTA 2026</h1>
+                        <div class="flex items-center">
+                            <p class="text-[10px] uppercase font-bold tracking-widest text-blue-300">Pusat Pengajian Siswazah (PPS)</p>
+                            <div id="syncIndicator" class="hidden ml-4 flex items-center space-x-2 bg-blue-900/50 px-2 py-0.5 rounded border border-blue-700/50 animate-pulse">
+                                <i class="fa-solid fa-arrows-rotate text-[8px] text-yellow-400 sync-icon-rotate"></i>
+                                <span class="text-[8px] font-bold text-white uppercase tracking-tighter italic">Menyegerak Data...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 hidden sm:flex">
+                    <div class="text-[11px] text-slate-300 bg-slate-700/50 px-4 py-2 rounded-full border border-slate-600/50 flex items-center">
+                        <i class="fa-regular fa-user mr-2 text-blue-400"></i><span id="userIdentifier" class="font-bold mr-3">Akses Pantau</span>
+                        <span class="mx-2 opacity-30 text-white">|</span>
+                        <i class="fa-regular fa-calendar-check mr-2"></i><span id="currentDate" class="font-medium"></span>
+                    </div>
+                    <button onclick="syncData()" class="w-10 h-10 bg-emerald-600 hover:bg-emerald-500 rounded-full text-white transition shadow-lg flex items-center justify-center" title="Segerak Data"><i class="fa-solid fa-cloud-arrow-down"></i></button>
+                </div>
+            </div>
+            <div id="syncProgressBar" class="h-0.5 w-full bg-slate-800 hidden relative"><div class="absolute h-full bg-gradient-to-r from-blue-500 via-yellow-400 to-emerald-500 w-1/3 animate-[loading_1.5s_infinite_linear]"></div></div>
+        </header>
+
+        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+            <div class="flex flex-wrap items-center gap-3 mb-6">
+                <input type="text" id="kpiSearchInput" placeholder="Cari aktiviti..." oninput="filterKpiGrid()" class="flex-1 min-w-[200px] bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                <div class="flex flex-wrap gap-2" id="lonjakanFilterChips">
+                    <button onclick="setLonjakanFilter('all', this)" class="filter-chip active">Semua</button>
+                    <button onclick="setLonjakanFilter('L7', this)" class="filter-chip">L7</button>
+                    <button onclick="setLonjakanFilter('L8', this)" class="filter-chip">L8</button>
+                    <button onclick="setLonjakanFilter('L10', this)" class="filter-chip">L10</button>
+                </div>
+            </div>
+            <div id="kpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
+            <div id="kpiDetailPanel" class="hidden mb-8"></div>
+        </main>
+
+        <footer class="bg-slate-900 border-t border-slate-800 mt-auto py-4 text-center">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">&copy; 2026 Pelan Tindakan Akademik Pusat Pengajian Siswazah</p>
+        </footer>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        
+        let isAdmin = true;
+        let pendingCallback = null;
+        const CURRENT_USER_EMAIL = "<?!= userEmail ?>";
+        const ADMIN_LIST = <?!= adminListJson ?>;
+        let isAuthenticated = CURRENT_USER_EMAIL && ADMIN_LIST && ADMIN_LIST.includes(CURRENT_USER_EMAIL);
+        const GOOGLE_SCRIPT_URL = window.location.href.split('?')[0];
+
+        function gsRun(functionName, ...args) {
+            return new Promise((resolve, reject) => {
+                if (typeof google === 'undefined' || typeof google.script === 'undefined') {
+                    reject(new Error("Ralat: Tidak berada di dalam persekitaran Apps Script."));
+                    return;
+                }
+                google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(reject)
+                    [functionName](...args);
+            });
+        }
+
+        function requireAuth(callback) {
+            if (isAuthenticated) { callback(); } else { showToast("Akses terhad. Hanya Staf PPS dibenarkan.", "error"); }
+        }
+
+        function showAccessDenied() {
+            document.getElementById('deniedUserEmail').textContent = CURRENT_USER_EMAIL || 'tidak dikenal pasti';
+            document.getElementById('accountChooserLink').href = 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(GOOGLE_SCRIPT_URL);
+            document.getElementById('accessDeniedOverlay').classList.remove('hidden');
+            document.getElementById('accessDeniedOverlay').style.display = 'flex';
+        }
+
+        window.btnOpenUpdateModal = (id, event) => {
+            const cachedEvent = event ? { pageY: event.pageY, clientY: event.clientY } : undefined;
+            requireAuth(() => openUpdateModal(id, cachedEvent));
+        };
+        window.btnOpenDeleteTindakanOverlay = (id) => requireAuth(() => openDeleteTindakanOverlay(id));
+        window.btnOpenAddAktivitiModal = (event) => {
+            const cachedEvent = event ? { pageY: event.pageY, clientY: event.clientY } : undefined;
+            requireAuth(() => openAddAktivitiModal(cachedEvent));
+        };
+        window.btnResetData = () => requireAuth(() => resetData());
+        window.btnSaveLaporanSukuanOnly = () => requireAuth(() => saveLaporanSukuanOnly());
+        window.btnOpenEditSasaranSukuanOverlay = () => requireAuth(() => openEditSasaranSukuanOverlay());
+        window.btnOpenEditTindakanOverlay = () => requireAuth(() => openEditTindakanOverlay());
+        window.btnEditEntry = (id) => requireAuth(() => editEntry(id));
+        window.btnDeleteEntry = (id, name) => requireAuth(() => deleteEntry(id, name));
+        window.btnClearModalForm = () => requireAuth(() => clearModalForm());
+
+        let currentEditId = null;     
+        let editingEntryId = null;    
+        let entryToDelete = null; 
+        let kpiToDelete = null; 
+        let selectedFilesArray = []; 
+
+        let kpiMapping = {
+            1: "L7-KPI-01", 9: "L7-KPI-02", 2: "L7-KPI-03", 
+            10: "L7-KPI-10", 
+            3: "L8-KPI-04", 4: "L8-KPI-05", 5: "L8-KPI-06", 6: "L8-KPI-07",
+            7: "L10-KPI-08", 8: "L10-KPI-09"
+        };
+
+        let initialData = [
+            { id: 1, lonjakan: "Lonjakan 7: Keunggulan Global", initiative: "Global Networking", activity: "Bilangan Pemeriksa Luar Antarabangsa", od: "Appointments shall consist of renowned international academic experts who possess expertise in the faculty's fields of study, extensive experience in the relevant area, and qualifications equivalent to the appointed position.", pi: "Percentage of international External Examiners (based on confirmed Viva-Voce candidates)", evidence: "Surat Pelantikan", target: "72", unit: "penilai luar negara", entries: [], quarterTargets: { q1: "18", q2: "36", q3: "54", q4: "72" } },
+            { id: 9, lonjakan: "Lonjakan 7: Keunggulan Global", initiative: "Global Networking", activity: "Bilangan Staf Akademik Antarabangsa sebagai Penyelia Bersama", od: "Appointments shall consist of renowned international academic experts and involvement in PhD student journey specifically acting as co-supervisors to ensure research remains practically relevant.", pi: "Number of International Academic Staff as Co-Supervisor (PG)", evidence: "Surat Pelantikan / Borang GS-04", target: "200", unit: "penyelia bersama luar negara", entries: [], quarterTargets: { q1: "50", q2: "100", q3: "150", q4: "200" } },
+            { id: 2, lonjakan: "Lonjakan 7: Keunggulan Global", initiative: "FlexS@Global", activity: "Dialog Antarabangsa (Flexs@Global: International Muldisciplinary Conference)", od: "An international engagement activity where academic staff and students interact with global peers or industry leaders to discuss specialized topics, aimed at enhancing global visibility.", pi: "Number of International Collaborators (Countries)", evidence: "Laporan Pelaksanaan Program", target: "5", unit: "kolaborator antarabangsa", entries: [], quarterTargets: { q1: "MoU / LoI with collaborator", q2: "5 penceramah antarabangsa dikenalpasti", q3: "International Dialogue - FlexS@Global", q4: "-" } },
+            { id: 10, lonjakan: "Lonjakan 7: Keunggulan Global", initiative: "Global university engagement", activity: "Enrollment of international students in academic programmes", od: "International postgraduate (PG) students actively enrolled in full-time and/or part-time academic programmes, including new students for the respective academic session.", pi: "Number of international student enrollments (60% (900) from other countries than Indonesia)", evidence: "Complete list of student registrations", target: "1500", unit: "Pelajar", entries: [], quarterTargets: { q1: "-", q2: "Promotion with International university", q3: "750", q4: "1500" } },
+            { id: 3, lonjakan: "Lonjakan 8: Pendidikan Fleksibel & PSH", initiative: "Program Akademik Fleksibel", activity: "Kursus Fleksibel (Penawaran RMC)", od: "Offering Massive Open Online Courses (MOOCs) to enhance lifelong learning and facilitate access to education for all segments of society.", pi: "Number of courses (Micro-Credential RMC)", evidence: "Surat / Dokumen Penawaran pada EduFlexS", target: "1", unit: "Course (RMC)", entries: [], quarterTargets: { q1: "-", q2: "Complete Course Plan", q3: "1 MOOC course", q4: "-" } },
+            { id: 5, lonjakan: "Lonjakan 8: Pendidikan Fleksibel & PSH", initiative: "Micro-Credentials (MC)", activity: "Penawaran MC Formal", od: "Formal Micro-Credentials (MC) for obtaining a Stackable Degree is an innovative and flexible education model accumulation recognized as partial credits.", pi: "Number of Micro-Credentials modules", evidence: "Surat/Dokumen Penawaran MC", target: "1", unit: "Modul MC", entries: [], quarterTargets: { q1: "-", q2: "Complete Modul Plan", q3: "1 Modul MC", q4: "-" } },
+            { id: 6, lonjakan: "Lonjakan 8: Pendidikan Fleksibel & PSH", initiative: "Program PSH Informal", activity: "Program PSH Informal", od: "Short-term programmes and training conducted to improve quality of life for all groups. Does not involve faculty-specific expertise.", pi: "Number of PSH Informal programme", evidence: "Laporan Lengkap Program", target: "2", unit: "program", entries: [], quarterTargets: { q1: "-", q2: "1 program", q3: "-", q4: "2 program" } },
+            { id: 4, lonjakan: "Lonjakan 8: Pendidikan Fleksibel & PSH", initiative: "Program PSH Bukan Formal", activity: "Program Bukan Formal bersama Industri", od: "Learning outside formal institutions focusing on development of skills/competencies not bound by conventional academic structures.", pi: "Number of PSH Non-Formal programme", evidence: "Laporan Lengkap Program", target: "2", unit: "program", entries: [], quarterTargets: { q1: "-", q2: "-", q3: "1 program", q4: "2 program" } },
+            { id: 8, lonjakan: "Lonjakan 10: Penyampaian Responsif & Dinamik", initiative: "E-Learning Platform (KELIP)", activity: "Pembangunan Fungsi KELIP (PTG)", od: "Enhancement of functions to support PTG verification within the e-Learning platform (KELIP).", pi: "Number of functions enhanced", evidence: "Laporan Aktiviti Pembangunan Sistem", target: "1", unit: "Course (RMC)", entries: [], quarterTargets: { q1: "-", q2: "-", q3: "Fungsi Tambahan Integrasi AI", q4: "-" } },
+            { id: 7, lonjakan: "Lonjakan 10: Penyampaian Responsif & Dinamik", initiative: "Nexus Learning Landscape", activity: "Pewujudan Green Learning Common Spaces", od: "Establishment of technology-enabled flexible postgraduate lounge with collaborative furniture, digital tools, and academic support facilities utilised for research and innovation.", pi: "Number of learning common spaces", evidence: "Laporan Penubuhan / Gambar Ruang", target: "1", unit: "Ruang", entries: [], quarterTargets: { q1: "-", q2: "Kertas Kerja", q3: "Kelulusan", q4: "1 Ruang" } }
+        ];
+
+        let kpiData = JSON.parse(JSON.stringify(initialData));
+        let progressChart;
+
+        function extractNumber(val) {
+            if (val === undefined || val === null) return 0;
+            const match = String(val).match(/\d+(\.\d+)?/);
+            return match ? parseFloat(match[0]) : 0;
+        }
+
+        function updateDashboard() {
+            let achieved = 0, inProgress = 0, totalPercentSum = 0;
+            kpiData.forEach(kpi => {
+                if(!kpi.entries) kpi.entries = [];
+                let qData = kpi.quarterData || {};
+                let v1 = extractNumber(qData.q1_val), v2 = extractNumber(qData.q2_val), v3 = extractNumber(qData.q3_val), v4 = extractNumber(qData.q4_val);
+                kpi.current = Math.max(v1, v2, v3, v4);
+                let targetNum = extractNumber(kpi.target);
+                if (targetNum > 0) {
+                    if (kpi.current >= targetNum) achieved++; else if (kpi.current > 0) inProgress++;
+                    totalPercentSum += Math.min(100, (kpi.current / targetNum) * 100);
+                } else { if (kpi.current > 0) inProgress++; }
+            });
+            renderKpiGrid();
+        }
+
+        function getLonjakanClass(lonjakan) {
+            if (lonjakan.includes('Lonjakan 7') || lonjakan.includes('Keunggulan Global')) return 'l7';
+            if (lonjakan.includes('Lonjakan 8') || lonjakan.includes('Pendidikan Fleksibel')) return 'l8';
+            if (lonjakan.includes('Lonjakan 10') || lonjakan.includes('Penyampaian Responsif')) return 'l10';
+            return 'l7';
+        }
+
+        function renderKpiGrid() {
+            var grid = document.getElementById('kpiGrid');
+            if (!grid) return;
+            var searchTerm = (document.getElementById('kpiSearchInput') ? document.getElementById('kpiSearchInput').value : '').toLowerCase();
+            var filtered = kpiData;
+            if (currentLonjakanFilter !== 'all') {
+                var lc = currentLonjakanFilter;
+                filtered = kpiData.filter(function(k) { return getLonjakanClass(k.lonjakan) === lc; });
+            }
+            if (searchTerm) {
+                filtered = filtered.filter(function(k) { return k.activity.toLowerCase().includes(searchTerm) || k.lonjakan.toLowerCase().includes(searchTerm); });
+            }
+            var html = '';
+            filtered.forEach(function(item) {
+                var targetNum = extractNumber(item.target);
+                var status = (item.current >= targetNum && targetNum > 0) ? {label:'Selesai', cls:'status-badge-selesai'} : (item.current > 0 ? {label:'Berjalan', cls:'status-badge-berjalan'} : {label:'Belum Mula', cls:'status-badge-belum'});
+                var percent = targetNum > 0 ? Math.min(100, (item.current / targetNum) * 100) : 0;
+                var lc = getLonjakanClass(item.lonjakan);
+                var kpiCode = '';
+                for (var key in kpiMapping) { if (kpiMapping[key] === 'L' + lc.toUpperCase() + '-KPI-' + item.id) { kpiCode = kpiMapping[key]; break; } }
+                if (!kpiCode) kpiCode = item.lonjakan.split(':')[0] || 'KPI';
+                html += '<div class="kpi-card kpi-card-' + lc + '" onclick="expandKpi(' + item.id + ')">';
+                html += '<div class="flex items-start justify-between mb-2"><span class="text-xs font-bold uppercase tracking-wider" style="color:' + (lc==='l7'?'#60a5fa':lc==='l8'?'#fbbf24':'#34d399') + '">' + kpiCode + '</span><div class="flex items-center gap-2"><span class="px-2 py-0.5 text-[10px] font-bold rounded-full ' + status.cls + '">' + status.label + '</span></div></div>';
+                html += '<h4 class="text-sm font-semibold text-slate-200 mb-3 leading-snug line-clamp-2">' + item.activity + '</h4>';
+                html += '<div class="flex items-center justify-between text-[11px] text-slate-400 mb-2"><span>' + item.current + ' / ' + item.target + ' ' + item.unit + '</span><span class="font-bold text-white">' + Math.round(percent) + '%</span></div>';
+                html += '<div class="progress-bar-bg mb-2"><div class="progress-bar-' + lc + '" style="width:' + percent + '%"></div></div>';
+                html += '<div class="flex items-center justify-between text-[9px] text-slate-500"><span>' + item.lonjakan.substring(0,40) + '</span><i class="fa-solid fa-chevron-right text-slate-600"></i></div>';
+                html += '</div>';
+            });
+            if (html === '') html = '<div class="col-span-full text-center text-slate-500 py-12 text-sm">Tiada KPI ditemui.</div>';
+            grid.innerHTML = html;
+        }
+
+        var currentLonjakanFilter = 'all';
+        function setLonjakanFilter(val, btn) {
+            currentLonjakanFilter = val;
+            var chips = document.querySelectorAll('#lonjakanFilterChips button');
+            chips.forEach(function(c) { c.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
+            renderKpiGrid();
+        }
+        function filterKpiGrid() { renderKpiGrid(); }
+
+        function expandKpi(id) {
+            var item = kpiData.find(function(k) { return k.id == id; });
+            if (!item) return;
+            var panel = document.getElementById('kpiDetailPanel');
+            var targetNum = extractNumber(item.target);
+            var percent = targetNum > 0 ? Math.min(100, (item.current / targetNum) * 100) : 0;
+            var lc = getLonjakanClass(item.lonjakan);
+            var borderColor = lc === 'l7' ? '#3b82f6' : lc === 'l8' ? '#f59e0b' : '#10b981';
+            var entriesHtml = '';
+            if (item.entries && item.entries.length > 0) {
+                entriesHtml = '<div class="mt-4"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center"><i class="fa-solid fa-list-ul mr-1.5"></i> Rekod Bukti Disimpan (' + item.entries.length + ')</h5><div class="space-y-2 max-h-48 overflow-y-auto pr-2 entries-scroll">';
+                item.entries.forEach(function(e) {
+                    var fileDisplay = '';
+                    if (e.fileName && typeof e.fileName === 'string' && e.fileName.trim() !== '') {
+                        var names = e.fileName.split(',').filter(function(s) { return s.trim().length > 0; });
+                        if (names.length > 0) {
+                            var safeUrlStr = (e.fileUrl || '').replace(/'/g, "\\'");
+                            var safeNameStr = (e.fileName || '').replace(/'/g, "\\'");
+                            fileDisplay = '<button onclick="openPreviewOverlay(\'' + safeUrlStr + '\', \'' + safeNameStr + '\')" class="ml-2 text-blue-400 hover:text-blue-300 text-[10px] font-semibold transition flex items-center bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded cursor-pointer"><i class="fa-solid fa-paperclip mr-1"></i>' + names.length + ' Lampiran</button>';
+                        }
+                    }
+                    entriesHtml += '<div class="flex items-start justify-between text-xs bg-slate-800/50 p-3 rounded-lg border border-slate-700"><div><span class="font-bold text-slate-200 block text-sm mb-1">' + e.nama + '</span><span class="text-slate-400 text-[10px] flex items-center"><i class="fa-regular fa-calendar mr-1 text-blue-400"></i>' + e.tarikh + fileDisplay + '</span></div></div>';
+                });
+                entriesHtml += '</div></div>';
+            }
+            var qData = item.quarterData || {};
+            var q1Class = qData.q1_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+            var q2Class = qData.q2_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+            var q3Class = qData.q3_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+            var q4Class = qData.q4_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+            var detailHtml = '<div class="glass-card rounded-2xl p-6 mb-8 animate-fadeIn" style="border-left:4px solid ' + borderColor + '">';
+            detailHtml += '<div class="flex items-start justify-between mb-4"><div><span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase block mb-1">' + item.initiative + '</span><h3 class="text-lg font-bold text-white">' + item.activity + '</h3><p class="text-xs text-slate-400 mt-1">' + item.lonjakan + '</p></div><button onclick="closeKpiDetail()" class="text-slate-500 hover:text-slate-300 transition"><i class="fa-solid fa-times text-lg"></i></button></div>';
+            detailHtml += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Sasaran</p><p class="text-2xl font-bold text-white">' + item.target + ' <span class="text-sm text-slate-400">' + item.unit + '</span></p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Pencapaian Semasa</p><p class="text-2xl font-bold text-white">' + item.current + ' <span class="text-sm text-slate-400">' + item.unit + '</span></p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Peratusan</p><p class="text-2xl font-bold text-white">' + Math.round(percent) + '%</p></div></div>';
+            detailHtml += '<div class="progress-bar-bg mb-4 h-3"><div class="progress-bar-' + lc + '" style="width:' + percent + '%"></div></div>';
+            detailHtml += '<div class="mb-4"><p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Kemajuan Sukuan (Q1-Q4)</p><div class="flex gap-1 h-3 mb-1"><div class="flex-1 rounded-full ' + q1Class + '" title="Q1"></div><div class="flex-1 rounded-full ' + q2Class + '" title="Q2"></div><div class="flex-1 rounded-full ' + q3Class + '" title="Q3"></div><div class="flex-1 rounded-full ' + q4Class + '" title="Q4"></div></div></div>';
+            detailHtml += '<div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-slate-700"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-circle-info mr-1 text-blue-400"></i> Definisi Operasi (OD)</h5><p class="text-sm text-slate-300 leading-relaxed">' + item.od + '</p></div>';
+            detailHtml += '<div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-slate-700"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-chart-simple mr-1 text-blue-400"></i> Petunjuk Prestasi (PI) &amp; Bukti</h5><p class="text-sm text-slate-300 mb-2">' + item.pi + '</p><p class="text-xs text-slate-400"><i class="fa-regular fa-folder-open mr-1"></i> ' + item.evidence + '</p></div>';
+            detailHtml += entriesHtml;
+            detailHtml += '<div class="flex gap-3"><button onclick="btnOpenUpdateModal(\'' + item.id + '\', event)" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition shadow-lg"><i class="fa-solid fa-pen-to-square mr-1"></i> Kemaskini Rekod</button><button onclick="closeKpiDetail()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-bold rounded-lg transition">Tutup</button></div>';
+            detailHtml += '</div>';
+            panel.innerHTML = detailHtml;
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        function closeKpiDetail() { var panel = document.getElementById('kpiDetailPanel'); panel.classList.add('hidden'); panel.innerHTML = ''; }
+
+        function openPreviewOverlay(urlStr, nameStr) {
+            if (!urlStr || urlStr === 'undefined') { showToast("Tiada fail dilampirkan.", "error"); return; }
+            const urls = urlStr.split(',').map(s => s.trim()).filter(s => s);
+            const names = nameStr.split(',').map(s => s.trim()).filter(s => s);
+            if(urls.length === 0) { showToast("Tiada fail dilampirkan.", "error"); return; }
+
+            document.getElementById('filePreviewOverlay').style.display = 'flex';
+            const nav = document.getElementById('previewMultiFileNav');
+            if (urls.length > 1) {
+                nav.style.display = 'flex'; nav.innerHTML = '';
+                urls.forEach((url, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "px-3 py-1.5 bg-white border border-blue-200 rounded shadow-sm text-xs font-bold text-gray-700 hover:bg-unisza-blue hover:text-white truncate max-w-[200px] transition whitespace-nowrap";
+                    btn.innerHTML = '<i class="fa-solid fa-file mr-1"></i> ' + (names[idx] || 'Lampiran ' + (idx+1));
+                    btn.onclick = () => loadIframe(url, names[idx]);
+                    nav.appendChild(btn);
+                });
+            } else { nav.style.display = 'none'; }
+            loadIframe(urls[0], names[0]);
+        }
+
+        function loadIframe(url, name) {
+            document.getElementById('previewTitle').innerHTML = '<i class="fa-solid fa-file-pdf text-red-500 mr-2"></i> ' + (name || 'Dokumen');
+            document.getElementById('previewLoading').style.display = 'flex';
+            
+            let fileId = "";
+            const match1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            const match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match1) fileId = match1[1]; else if (match2) fileId = match2[1];
+
+            const openBtn = document.getElementById('previewOpenBtn'); if(openBtn) openBtn.href = url;
+            const dlBtn = document.getElementById('previewDownloadBtn');
+            if(dlBtn) { if(fileId) dlBtn.href = "https://drive.google.com/uc?export=download&id=" + fileId; else dlBtn.href = url; }
+
+            const iframe = document.getElementById('previewIframe'); iframe.style.display = 'none';
+            let previewUrl = url;
+            if (fileId) previewUrl = "https://drive.google.com/file/d/" + fileId + "/preview"; else previewUrl = url.replace(/\/view.*$/, '/preview');
+            iframe.src = previewUrl;
+        }
+
+        function closePreviewOverlay() { document.getElementById('filePreviewOverlay').style.display = 'none'; document.getElementById('previewIframe').src = ''; }
+
+        function renderTable() {
+            const container = document.getElementById('kpiContainer'); container.innerHTML = '';
+            const grouped = kpiData.reduce((acc, item) => { if (!acc[item.lonjakan]) acc[item.lonjakan] = []; acc[item.lonjakan].push(item); return acc; }, {});
+            
+            for (const [lonjakan, items] of Object.entries(grouped)) {
+                let groupHtml = '<div class="mb-8"><div class="flex items-center space-x-3 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100"><div class="bg-unisza-blue text-white w-8 h-8 rounded flex items-center justify-center"><i class="fa-solid fa-rocket"></i></div><h3 class="text-sm font-bold text-unisza-blue uppercase tracking-wider">' + lonjakan + '</h3></div><div class="space-y-4">';
+                
+                items.forEach(item => {
+                    let targetNum = extractNumber(item.target);
+                    const status = (item.current >= targetNum && targetNum > 0) ? {label:'Selesai', class:'bg-green-100 text-green-700 border-green-200'} : (item.current > 0 ? {label:'Berjalan', class:'bg-yellow-100 text-yellow-700 border-yellow-200'} : {label:'Belum Mula', class:'bg-gray-100 text-gray-500 border-gray-200'});
+                    const percent = targetNum > 0 ? Math.min(100, (item.current / targetNum) * 100) : 0;
+                    
+                    let entriesHtml = '';
+                    if(item.entries && item.entries.length > 0) {
+                        entriesHtml = '<div class="mt-5 pt-4 border-t border-gray-100"><h5 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center"><i class="fa-solid fa-list-ul mr-1.5"></i> Rekod Bukti Disimpan (' + item.entries.length + ')</h5><ul class="space-y-2 max-h-[220px] overflow-y-auto pr-2 entries-scroll">';
+                        item.entries.forEach(e => {
+                            let fileDisplay = '';
+                            if(e.fileName && typeof e.fileName === 'string' && e.fileName.trim() !== '') {
+                                const names = e.fileName.split(',').map(s=>s.trim()).filter(s => s.length > 0);
+                                const count = names.length;
+                                if (count > 0) {
+                                    const safeUrlStr = (e.fileUrl || '').replace(/'/g, "\\'");
+                                    const safeNameStr = (e.fileName || '').replace(/'/g, "\\'");
+                                    fileDisplay = '<button onclick="openPreviewOverlay(\'' + safeUrlStr + '\', \'' + safeNameStr + '\')" class="ml-3 text-blue-500 hover:text-blue-700 text-[10px] font-semibold transition flex items-center bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded cursor-pointer"><i class="fa-solid fa-paperclip mr-1"></i>' + count + ' Lampiran (Klik Lihat)</button>';
+                                }
+                            }
+                            let lencanaExtra = '';
+                            if(e.fakulti) lencanaExtra += '<span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[9px] font-semibold mr-1.5 border border-gray-200">' + e.fakulti + '</span>';
+                            if(e.tahap) lencanaExtra += '<span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[9px] font-semibold mr-1.5 border border-gray-200">' + e.tahap + '</span>';
+                            if(e.matrik) lencanaExtra += '<span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[9px] font-semibold mr-1.5 border border-gray-200">' + e.matrik + '</span>';
+                            if(lencanaExtra) lencanaExtra = '<div class="mt-1.5 mb-1.5 flex flex-wrap gap-1">' + lencanaExtra + '</div>';
+
+                            entriesHtml += '<li class="flex items-start justify-between text-xs bg-gray-50 p-3 rounded-lg border border-gray-200 hover:border-blue-300 transition"><div><span class="font-bold text-gray-700 block text-sm mb-1">' + e.nama + '</span>' + lencanaExtra + '<span class="text-gray-500 text-[10px] flex items-center flex-wrap"><i class="fa-regular fa-calendar text-unisza-blue mr-1"></i>' + e.tarikh + fileDisplay + '</span></div></li>';
+                        });
+                        entriesHtml += '</ul></div>';
+                    }
+
+                    let qData = item.quarterData || {};
+                    let q1Class = qData.q1_status === 'tercapai' ? 'bg-green-500' : 'bg-gray-200'; let q2Class = qData.q2_status === 'tercapai' ? 'bg-green-500' : 'bg-gray-200'; let q3Class = qData.q3_status === 'tercapai' ? 'bg-green-500' : 'bg-gray-200'; let q4Class = qData.q4_status === 'tercapai' ? 'bg-green-500' : 'bg-gray-200';
+                    let sukuanHtml = '<div class="flex justify-between text-[10px] mb-1.5 mt-1"><span class="text-gray-400 font-bold uppercase tracking-wider">Kemajuan Sukuan</span><span class="text-gray-400 font-bold text-[9px]">Q1 - Q4</span></div><div class="w-full flex gap-1 h-2 mb-4"><div class="flex-1 rounded-full transition-colors duration-300 shadow-inner ' + q1Class + '" title="Q1"></div><div class="flex-1 rounded-full transition-colors duration-300 shadow-inner ' + q2Class + '" title="Q2"></div><div class="flex-1 rounded-full transition-colors duration-300 shadow-inner ' + q3Class + '" title="Q3"></div><div class="flex-1 rounded-full transition-colors duration-300 shadow-inner ' + q4Class + '" title="Q4"></div></div>';
+
+                    groupHtml += '<div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"><div class="flex flex-col md:flex-row justify-between gap-4"><div class="flex-1 pr-0 md:pr-4"><div class="flex items-start justify-between"><div><span class="text-[9px] font-bold tracking-widest text-blue-600 uppercase mb-1 block">' + item.initiative + '</span><h4 class="text-md font-bold text-gray-800 leading-snug flex items-center flex-wrap">' + item.activity + '<div class="group relative ml-2 flex items-center cursor-pointer inline-block"><i class="fa-regular fa-comment-dots text-unisza-blue opacity-50 hover:opacity-100 transition text-lg"></i><div class="hidden group-hover:block absolute z-[100] left-0 bottom-full mb-2 w-72 p-4 bg-gray-800 text-white text-[11px] rounded-xl shadow-2xl font-normal leading-relaxed border border-gray-700"><div class="font-bold text-unisza-yellow mb-2 border-b border-gray-600 pb-1 uppercase tracking-tighter">Definisi Operasi (OD)</div>' + item.od + '</div></div></h4></div><div class="flex flex-col items-end space-y-2"><span class="px-2.5 py-0.5 text-[9px] font-bold border rounded-full whitespace-nowrap ml-3 uppercase shadow-sm ' + status.class + '">' + status.label + '</span><button onclick="btnOpenDeleteTindakanOverlay(\'' + item.id + '\')" class="admin-only w-7 h-7 bg-red-50 hover:bg-red-100 text-red-600 rounded-full flex items-center justify-center transition shadow-sm opacity-60 hover:opacity-100 ml-3" title="Buang Tindakan"><i class="fa-solid fa-trash-can text-[10px]"></i></button></div></div><div class="mt-3 text-[11px] text-gray-500"><i class="fa-regular fa-folder-open mr-1"></i> Bukti Indikator: <span class="font-medium">' + item.evidence + '</span></div>' + entriesHtml + '</div><div class="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 flex flex-col justify-center"><div class="flex justify-between text-[11px] mb-2"><span class="text-gray-400 font-bold uppercase tracking-wider">Jumlah Pencapaian</span><span class="font-bold text-gray-800">' + item.current + ' / ' + item.target + ' ' + item.unit + '</span></div><div class="w-full bg-gray-100 rounded-full h-2.5 mb-2 border border-gray-200"><div class="bg-unisza-yellow h-2.5 rounded-full transition-all duration-700 shadow-sm" style="width: ' + percent + '%"></div></div>' + sukuanHtml + '<button onclick="btnOpenUpdateModal(\'' + item.id + '\', event)" class="w-full bg-unisza-light hover:bg-gray-200 text-unisza-blue border border-gray-200 text-[10px] py-2.5 rounded-lg transition font-bold uppercase tracking-widest shadow-sm">Kemaskini Rekod</button></div></div></div>';
+                });
+                groupHtml += '</div></div>'; container.innerHTML += groupHtml;
+            }
+        }
+
+        function openDeleteTindakanOverlay(idKpi) { kpiToDelete = idKpi; document.getElementById('deleteTindakanOverlay').style.display = 'flex'; }
+        function closeDeleteTindakanOverlay() { kpiToDelete = null; document.getElementById('deleteTindakanOverlay').style.display = 'none'; }
+        function confirmDeleteTindakan() { document.getElementById('deleteTindakanOverlay').style.display = 'none'; document.getElementById('adminPasswordInput').value = ''; document.getElementById('adminPasswordError').style.display = 'none'; document.getElementById('passwordTindakanOverlay').style.display = 'flex'; }
+        function closePasswordTindakanOverlay() { kpiToDelete = null; document.getElementById('passwordTindakanOverlay').style.display = 'none'; }
+        
+        async function submitDeleteTindakan() {
+            const pwd = document.getElementById('adminPasswordInput').value;
+            if (pwd !== 'ADMIN_DELETE_PASSWORD' && pwd !== 'admin') { document.getElementById('adminPasswordError').style.display = 'block'; return; }
+            const btn = document.getElementById('btnConfirmPwd'); const originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memproses...'; btn.disabled = true;
+
+            try {
+                const result = await gsRun('deleteKpiInfoRecord', { idKpi: kpiMapping[kpiToDelete] });
+                if(result && result.success) {
+                    kpiData = kpiData.filter(k => k.id != kpiToDelete); initialData = initialData.filter(k => k.id != kpiToDelete); 
+                    updateDashboard(); closePasswordTindakanOverlay(); showToast("Tindakan berjaya dikeluarkan dari senarai.");
+                } else {
+                    showToast(result.message || 'Ralat membuang tindakan.', 'error');
+                }
+            } catch (err) { showToast(err.message, 'error'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+
+        function toggleQuarterStatus(q) { const card = document.getElementById(q + '_card'); const radioTercapai = document.querySelector('input[name="' + q + '_status"][value="tercapai"]'); if (radioTercapai && radioTercapai.checked) { card.classList.remove('bg-white', 'border-blue-100'); card.classList.add('bg-green-50', 'border-green-300'); } else { card.classList.add('bg-white', 'border-blue-100'); card.classList.remove('bg-green-50', 'border-green-300'); } }
+        function resetQuarters() { ['q1', 'q2', 'q3', 'q4'].forEach(q => { document.getElementById(q + '_input').value = ''; const radios = document.getElementsByName(q + '_status'); radios.forEach(r => r.checked = false); toggleQuarterStatus(q); }); document.getElementById('kpi_tercapai_status').checked = false; }
+
+        function openAddAktivitiModal(event) {
+            document.getElementById('add_lonjakan').value = ''; document.getElementById('add_aktiviti').value = ''; document.getElementById('add_od').value = ''; document.getElementById('add_pi').value = ''; document.getElementById('add_sasaran').value = ''; document.getElementById('add_q1').value = ''; document.getElementById('add_q2').value = ''; document.getElementById('add_q3').value = ''; document.getElementById('add_q4').value = '';
+            const modal = document.getElementById('addAktivitiModal'); const modalBox = document.getElementById('addAktivitiModalBox'); modal.style.display = 'flex';
+            if (event && event.pageY !== undefined && event.clientY !== undefined) { let viewportTop = event.pageY - event.clientY; modalBox.style.marginTop = (viewportTop + 50) + 'px'; } else { modalBox.style.marginTop = '50px'; }
+        }
+        function closeAddAktivitiModal() { document.getElementById('addAktivitiModal').style.display = 'none'; }
+        function confirmAddAktiviti() { if (!document.getElementById('add_lonjakan').value || !document.getElementById('add_aktiviti').value) { showToast("Sila isi sekurang-kurangnya Lonjakan dan Aktiviti.", "error"); return; } document.getElementById('confirmAddOverlay').style.display = 'flex'; }
+        function closeConfirmAddOverlay() { document.getElementById('confirmAddOverlay').style.display = 'none'; }
+        
+        async function submitAddAktiviti() {
+            const btn = document.getElementById('btnConfirmAdd'); const originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan...'; btn.disabled = true;
+            const newIdKpi = "L-KPI-" + Math.floor(Math.random() * 10000); 
+            let sasaranRaw = document.getElementById('add_sasaran').value.trim(); let targetNum = extractNumber(sasaranRaw); let unitStr = sasaranRaw.replace(targetNum.toString(), '').trim();
+            const payload = {
+                kpiInfo: { idKpi: newIdKpi, lonjakan: document.getElementById('add_lonjakan').value, initiative: "Inisiatif Baru", activity: document.getElementById('add_aktiviti').value, od: document.getElementById('add_od').value, pi: document.getElementById('add_pi').value, target: sasaranRaw, unit: unitStr, evidence: "-", q1_target: document.getElementById('add_q1').value, q2_target: document.getElementById('add_q2').value, q3_target: document.getElementById('add_q3').value, q4_target: document.getElementById('add_q4').value }
+            };
+
+            try {
+                const result = await gsRun('updateKpiInfo', payload);
+                if (result.success) {
+                    const newInternalId = Date.now();
+                    const newItem = { id: newInternalId, lonjakan: payload.kpiInfo.lonjakan, initiative: payload.kpiInfo.initiative, activity: payload.kpiInfo.activity, od: payload.kpiInfo.od, pi: payload.kpiInfo.pi, evidence: payload.kpiInfo.evidence, target: sasaranRaw, unit: unitStr, entries: [], quarterTargets: { q1: payload.kpiInfo.q1_target || "-", q2: payload.kpiInfo.q2_target || "-", q3: payload.kpiInfo.q3_target || "-", q4: payload.kpiInfo.q4_target || "-" } };
+                    kpiMapping[newInternalId] = newIdKpi; kpiData.push(newItem); updateDashboard(); closeConfirmAddOverlay(); closeAddAktivitiModal(); showToast("Tindakan/Aktiviti baharu berjaya ditambah.");
+                } else { showToast(result.message, 'error'); }
+            } catch (err) { showToast(err.message, 'error'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+
+        function openEditTindakanOverlay() { const item = kpiData.find(k => k.id == currentEditId); if (!item) return; document.getElementById('edit_t_lonjakan').value = item.lonjakan || ''; document.getElementById('edit_t_aktiviti').value = item.activity || ''; document.getElementById('edit_t_od').value = item.od || ''; document.getElementById('edit_t_pi').value = item.pi || ''; document.getElementById('edit_t_sasaran').value = item.target || ''; document.getElementById('editTindakanOverlay').style.display = 'flex'; }
+        function closeEditTindakanOverlay() { document.getElementById('editTindakanOverlay').style.display = 'none'; }
+        
+        async function submitEditTindakan() {
+            const item = kpiData.find(k => k.id == currentEditId); if (!item) return;
+            const btn = document.getElementById('btnConfirmEditTindakan'); const originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan...'; btn.disabled = true;
+            let sasaranRaw = document.getElementById('edit_t_sasaran').value.trim(); let targetNum = extractNumber(sasaranRaw); let unitStr = sasaranRaw.replace(targetNum.toString(), '').trim();
+            const payload = {
+                kpiInfo: { idKpi: kpiMapping[currentEditId], lonjakan: document.getElementById('edit_t_lonjakan').value, initiative: item.initiative || "Inisiatif", activity: document.getElementById('edit_t_aktiviti').value, od: document.getElementById('edit_t_od').value, pi: document.getElementById('edit_t_pi').value, target: sasaranRaw, unit: unitStr, evidence: item.evidence || "-", q1_target: item.quarterTargets ? item.quarterTargets.q1 : "-", q2_target: item.quarterTargets ? item.quarterTargets.q2 : "-", q3_target: item.quarterTargets ? item.quarterTargets.q3 : "-", q4_target: item.quarterTargets ? item.quarterTargets.q4 : "-" }
+            };
+
+            try {
+                const result = await gsRun('updateKpiInfo', payload);
+                if (result.success) {
+                    item.lonjakan = payload.kpiInfo.lonjakan; item.activity = payload.kpiInfo.activity; item.od = payload.kpiInfo.od; item.pi = payload.kpiInfo.pi; item.target = sasaranRaw; item.unit = unitStr;
+                    updateDashboard(); document.getElementById('m_lonjakan').textContent = item.lonjakan; document.getElementById('m_aktiviti').textContent = item.activity; document.getElementById('m_od').textContent = item.od; document.getElementById('m_pi').textContent = item.pi;
+                    let warningHtml = targetNum === 0 ? '<span class="text-[9px] text-red-500 italic ml-2 bg-red-50 px-2 py-0.5 rounded border border-red-100">Nyatakan sasaran dalam bentuk nombor</span>' : ''; document.getElementById('m_sasaran').innerHTML = item.target + " " + item.unit + warningHtml;
+                    closeEditTindakanOverlay(); showToast("Maklumat Tindakan berjaya dikemaskini.");
+                } else { showToast(result.message, 'error'); }
+            } catch (err) { showToast(err.message, 'error'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+
+        function openEditSasaranSukuanOverlay() { const item = kpiData.find(k => k.id == currentEditId); if (!item) return; let qt = item.quarterTargets || { q1: "", q2: "", q3: "", q4: "" }; document.getElementById('edit_q1_target').value = qt.q1 || ""; document.getElementById('edit_q2_target').value = qt.q2 || ""; document.getElementById('edit_q3_target').value = qt.q3 || ""; document.getElementById('edit_q4_target').value = qt.q4 || ""; document.getElementById('editSasaranSukuanOverlay').style.display = 'flex'; }
+        function closeEditSasaranSukuanOverlay() { document.getElementById('editSasaranSukuanOverlay').style.display = 'none'; }
+        
+        async function submitEditSasaranSukuan() {
+            const item = kpiData.find(k => k.id == currentEditId); if (!item) return;
+            const btn = document.getElementById('btnConfirmEditSasaran'); const originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan...'; btn.disabled = true;
+            const payload = {
+                kpiInfo: { idKpi: kpiMapping[currentEditId], lonjakan: item.lonjakan, initiative: item.initiative, activity: item.activity, od: item.od, pi: item.pi, target: item.target, unit: item.unit, evidence: item.evidence, q1_target: document.getElementById('edit_q1_target').value, q2_target: document.getElementById('edit_q2_target').value, q3_target: document.getElementById('edit_q3_target').value, q4_target: document.getElementById('edit_q4_target').value }
+            };
+
+            try {
+                const result = await gsRun('updateKpiInfo', payload);
+                if (result.success) {
+                    if (!item.quarterTargets) item.quarterTargets = {}; item.quarterTargets.q1 = payload.kpiInfo.q1_target; item.quarterTargets.q2 = payload.kpiInfo.q2_target; item.quarterTargets.q3 = payload.kpiInfo.q3_target; item.quarterTargets.q4 = payload.kpiInfo.q4_target;
+                    document.getElementById('q1_target_text').textContent = '(' + item.quarterTargets.q1 + ')'; document.getElementById('q2_target_text').textContent = '(' + item.quarterTargets.q2 + ')'; document.getElementById('q3_target_text').textContent = '(' + item.quarterTargets.q3 + ')'; document.getElementById('q4_target_text').textContent = '(' + item.quarterTargets.q4 + ')';
+                    closeEditSasaranSukuanOverlay(); showToast("Sasaran Sukuan berjaya dikemaskini.");
+                } else { showToast(result.message, 'error'); }
+            } catch (err) { showToast(err.message, 'error'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+
+        async function saveLaporanSukuanOnly() {
+            if (!currentEditId) return;
+            const btnIcon = document.getElementById('iconSaveSukuan'); const btn = document.getElementById('btnSaveSukuan'); const originalIconClass = btnIcon.className;
+            btn.disabled = true; btnIcon.className = "fa-solid fa-spinner fa-spin mr-1.5"; toggleSyncUI(true);
+
+            const payload = {
+                idKpi: kpiMapping[currentEditId], userEmail: document.getElementById('userIdentifier').textContent,
+                entryData: { id: Date.now().toString() + "_sukuan", nama: "Kemas Kini Laporan Sukuan", tarikh: new Date().toISOString().split('T')[0], kemajuan: 0, catatan: "Disimpan secara langsung dari kotak Laporan Pemantauan Sukuan.", fakulti: "", tahap: "", matrik: "" },
+                quarterData: { q1_val: document.getElementById('q1_input').value.trim(), q1_status: document.querySelector('input[name="q1_status"]:checked') ? document.querySelector('input[name="q1_status"]:checked').value : '', q2_val: document.getElementById('q2_input').value.trim(), q2_status: document.querySelector('input[name="q2_status"]:checked') ? document.querySelector('input[name="q2_status"]:checked').value : '', q3_val: document.getElementById('q3_input').value.trim(), q3_status: document.querySelector('input[name="q3_status"]:checked') ? document.querySelector('input[name="q3_status"]:checked').value : '', q4_val: document.getElementById('q4_input').value.trim(), q4_status: document.querySelector('input[name="q4_status"]:checked') ? document.querySelector('input[name="q4_status"]:checked').value : '', kpi_tercapai: document.getElementById('kpi_tercapai_status').checked }, filesData: []
+            };
+
+            try {
+                const res = await gsRun('processUpdate', payload);
+                if (res.success) { await syncData(); showToast('Pemantauan sukuan berjaya disimpan.'); } 
+                else { throw new Error(res.message); }
+            } catch (err) { showToast('Ralat: ' + err.message, 'error'); } finally { btnIcon.className = originalIconClass; btn.disabled = false; toggleSyncUI(false); }
+        }
+
+        function openUpdateModal(id, event) {
+            currentEditId = id; const item = kpiData.find(k => k.id == id); if (!item) return;
+            document.getElementById('m_lonjakan').textContent = item.lonjakan; document.getElementById('m_aktiviti').textContent = item.activity; document.getElementById('m_od').textContent = item.od; document.getElementById('m_pi').textContent = item.pi;
+            let targetNum = extractNumber(item.target); let warningHtml = targetNum === 0 ? '<span class="text-[9px] text-red-500 italic ml-2 bg-red-50 px-2 py-0.5 rounded border border-red-100">Nyatakan sasaran dalam bentuk nombor</span>' : ''; document.getElementById('m_sasaran').innerHTML = item.target + " " + item.unit + warningHtml;
+            let qt = item.quarterTargets || { q1: "-", q2: "-", q3: "-", q4: "-" }; document.getElementById('q1_target_text').textContent = '(' + qt.q1 + ')'; document.getElementById('q2_target_text').textContent = '(' + qt.q2 + ')'; document.getElementById('q3_target_text').textContent = '(' + qt.q3 + ')'; document.getElementById('q4_target_text').textContent = '(' + qt.q4 + ')';
+            cancelEditMode(); renderModalEntriesList(id); 
+            const qData = item.quarterData || {};
+            document.getElementById('q1_input').value = qData.q1_val || ''; if(qData.q1_status) { let r = document.querySelector('input[name="q1_status"][value="' + qData.q1_status + '"]'); if(r) r.checked = true; } else { document.getElementsByName('q1_status').forEach(r => r.checked = false); }
+            document.getElementById('q2_input').value = qData.q2_val || ''; if(qData.q2_status) { let r = document.querySelector('input[name="q2_status"][value="' + qData.q2_status + '"]'); if(r) r.checked = true; } else { document.getElementsByName('q2_status').forEach(r => r.checked = false); }
+            document.getElementById('q3_input').value = qData.q3_val || ''; if(qData.q3_status) { let r = document.querySelector('input[name="q3_status"][value="' + qData.q3_status + '"]'); if(r) r.checked = true; } else { document.getElementsByName('q3_status').forEach(r => r.checked = false); }
+            document.getElementById('q4_input').value = qData.q4_val || ''; if(qData.q4_status) { let r = document.querySelector('input[name="q4_status"][value="' + qData.q4_status + '"]'); if(r) r.checked = true; } else { document.getElementsByName('q4_status').forEach(r => r.checked = false); }
+            document.getElementById('kpi_tercapai_status').checked = qData.kpi_tercapai || false;
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => toggleQuarterStatus(q));
+            const modal = document.getElementById('updateModal'); const modalBox = document.getElementById('updateModalBox'); modal.style.display = 'flex';
+            if (event && event.pageY !== undefined && event.clientY !== undefined) { let viewportTop = event.pageY - event.clientY; let topMargin = viewportTop + 50; modalBox.style.marginTop = topMargin + 'px'; } else { modalBox.style.marginTop = '50px'; }
+        }
+
+        function closeUpdateModal() { document.getElementById('updateModal').style.display = 'none'; currentEditId = null; editingEntryId = null; const statusText = document.getElementById('fileProcessingStatus'); if(statusText) { statusText.classList.add('hidden'); statusText.innerHTML = ''; } }
+        
+        function renderModalEntriesList(kpiId) {
+            const item = kpiData.find(k => k.id == kpiId); const section = document.getElementById('modalEntriesSection'); const tbody = document.getElementById('modalEntriesBody');
+            if(!item || !item.entries || item.entries.length === 0) { section.classList.add('hidden'); section.classList.remove('flex'); tbody.innerHTML = ''; return; }
+            section.classList.remove('hidden'); section.classList.add('flex'); let html = '';
+            item.entries.forEach((e, index) => {
+                let attachmentInfo = ''; if(e.fileName && typeof e.fileName === 'string' && e.fileName.trim() !== '') { const count = e.fileName.split(',').filter(s => s.trim().length > 0).length; if (count > 0) attachmentInfo = '<span class="text-[10px] text-blue-600 mt-1 block"><i class="fa-solid fa-paperclip mr-1"></i>' + count + ' Lampiran</span>'; }
+                const safeName = e.nama.replace(/'/g, "\\'");
+                html += '<tr class="hover:bg-purple-50 border-b border-gray-100 last:border-0"><td class="px-4 py-3 text-center text-gray-500">' + (index + 1) + '</td><td class="px-4 py-3"><span class="font-bold text-gray-800 block">' + e.nama + '</span>' + (e.catatan ? '<span class="text-[10px] text-gray-500 mt-1 block italic"><i class="fa-regular fa-comment mr-1"></i>' + e.catatan.substring(0,40) + (e.catatan.length>40?'...':'') + '</span>' : '') + attachmentInfo + '</td><td class="px-4 py-3 text-center text-gray-600">' + e.tarikh + '</td><td class="px-4 py-3 text-center admin-only"><div class="flex items-center justify-center space-x-2"><button onclick="btnEditEntry(\'' + e.id + '\')" class="text-purple-600 bg-purple-100 hover:bg-purple-200 px-3 py-1.5 rounded-lg font-bold transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="btnDeleteEntry(\'' + e.id + '\', \'' + safeName + '\')" class="text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg font-bold transition" title="Buang"><i class="fa-solid fa-trash-can"></i></button></div></td></tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        function deleteEntry(entryId, entryName) { entryToDelete = entryId; document.getElementById('deleteProjectName').textContent = entryName; const deleteOverlay = document.getElementById('deleteOverlay'); deleteOverlay.style.display = 'flex'; }
+        function closeDeleteModal() { const deleteOverlay = document.getElementById('deleteOverlay'); deleteOverlay.style.display = 'none'; entryToDelete = null; }
+        
+        async function confirmDeleteEntry() {
+            if (!entryToDelete) return;
+            const btn = document.getElementById('btnConfirmDelete'); const originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Membuang...'; btn.disabled = true;
+
+            try {
+                const result = await gsRun('deleteEntryRecord', { idKpi: kpiMapping[currentEditId], entryId: entryToDelete, userEmail: document.getElementById('userIdentifier').textContent });
+                if (result && result.success) {
+                    const item = kpiData.find(k => k.id == currentEditId); if (item && item.entries) item.entries = item.entries.filter(e => e.id != entryToDelete);
+                    updateDashboard(); renderModalEntriesList(currentEditId); if (editingEntryId == entryToDelete) cancelEditMode(); closeDeleteModal(); showToast('Data berjaya dibuang dari senarai.');
+                } else {
+                    showToast(result.message || 'Ralat membuang data.', 'error');
+                }
+            } catch (err) { showToast(err.message, 'error'); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+
+        function handleMultipleFiles(input) {
+            const files = input.files; if (!files.length) return;
+            const listContainer = document.getElementById('newFilesList'); const btnSave = document.getElementById('btnSaveUpdate'); const statusText = document.getElementById('fileProcessingStatus');
+            Array.from(files).forEach(file => {
+                if (file.size > 10 * 1024 * 1024) { showToast('Fail ' + file.name + ' melebihi 10MB', 'error'); return; }
+                const fileItem = document.createElement('div'); fileItem.className = "flex justify-between items-center bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 text-[11px] mb-1"; fileItem.innerHTML = '<span class="font-medium text-blue-800 truncate"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memproses fail...</span>'; listContainer.appendChild(fileItem);
+                if(btnSave) btnSave.disabled = true; if(statusText) { statusText.classList.remove('hidden'); statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2 text-blue-500"></i><span class="text-blue-600">Data sedang diproses...</span>'; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const pNama = document.getElementById('m_form_nama').value.trim() || 'Bukti_Rekod'; const extension = file.name.split('.').pop(); const newName = selectedFilesArray.length > 0 ? pNama + "_" + (selectedFilesArray.length + 1) + "." + extension : pNama + "." + extension;
+                    selectedFilesArray.push({ base64: e.target.result.split(',')[1], type: file.type || 'application/pdf', name: newName });
+                    fileItem.innerHTML = '<span class="font-medium text-blue-800 truncate"><i class="fa-solid fa-file-lines mr-2"></i>' + newName + '</span><button type="button" class="text-red-500 hover:text-red-700 ml-2" onclick="removeSelectedFile(this, \'' + newName + '\')"><i class="fa-solid fa-xmark"></i></button>';
+                    if(btnSave) btnSave.disabled = false; if(statusText) { statusText.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-green-500"></i><span class="text-green-600">Data siap diproses, tekan Simpan Rekod</span>'; }
+                };
+                reader.onerror = () => { fileItem.innerHTML = '<span class="font-medium text-red-600 truncate"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Gagal memproses fail</span>'; if(btnSave) btnSave.disabled = false; if(statusText) { statusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2 text-red-500"></i><span class="text-red-600">Gagal memproses fail</span>'; } showToast('Gagal membaca fail ' + file.name, 'error'); };
+                reader.readAsDataURL(file);
+            });
+            input.value = '';
+        }
+
+        function removeSelectedFile(btn, name) { selectedFilesArray = selectedFilesArray.filter(f => f.name !== name); btn.parentElement.remove(); }
+
+        function editEntry(entryId) {
+            const item = kpiData.find(k => k.id == currentEditId); if(!item) return; const entry = item.entries.find(e => e.id == entryId); if(!entry) { showToast('Ralat: Entri tidak dapat dijumpai dalam rekod.', 'error'); return; }
+            editingEntryId = entryId; document.getElementById('m_form_nama').value = entry.nama || ''; document.getElementById('m_form_tarikh').value = entry.tarikh || new Date().toISOString().split('T')[0]; document.getElementById('m_form_fakulti').value = entry.fakulti || ''; document.getElementById('m_form_tahap').value = entry.tahap || ''; document.getElementById('m_form_matrik').value = entry.matrik || ''; document.getElementById('m_form_catatan').value = entry.catatan || '';
+            const attachBox = document.getElementById('existingAttachmentsBox'); const attachList = document.getElementById('existingAttachmentsList'); attachList.innerHTML = '';
+            if (entry.fileName && entry.fileUrl && typeof entry.fileName === 'string' && entry.fileName.trim() !== '') {
+                const names = entry.fileName.split(',').map(s => s.trim()).filter(s => s.length > 0); const urls = entry.fileUrl.split(',').map(s => s.trim());
+                if (names.length > 0) { attachBox.classList.remove('hidden'); names.forEach((name, idx) => { const url = urls[idx] || '#'; attachList.innerHTML += '<a href="' + url + '" target="_blank" class="bg-gray-100 hover:bg-blue-100 border border-gray-300 px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-700 transition flex items-center mb-1"><i class="fa-solid fa-paperclip mr-1.5 text-blue-600"></i> ' + name + '</a>'; }); } else { attachBox.classList.add('hidden'); }
+            } else { attachBox.classList.add('hidden'); }
+            document.getElementById('editModeIndicator').classList.remove('hidden'); document.getElementById('formSectionTitle').textContent = "KEMASKINI BUTIRAN REKOD"; document.getElementById('formContainerBox').classList.replace('border-gray-200', 'border-yellow-400'); document.getElementById('formContainerBox').classList.add('bg-yellow-50/30'); const btnText = document.getElementById('btnSaveText'); if (btnText) btnText.textContent = "Simpan Perubahan"; document.getElementById('btnCancelEdit').classList.remove('hidden'); document.getElementById('btnClearForm').classList.add('hidden'); document.getElementById('formSectionTitle').scrollIntoView({behavior: "smooth", block: "start"});
+        }
+
+        function cancelEditMode() { editingEntryId = null; clearModalForm(); document.getElementById('editModeIndicator').classList.add('hidden'); document.getElementById('formSectionTitle').textContent = "TAMBAH REKOD BARU"; document.getElementById('formContainerBox').classList.replace('border-yellow-400', 'border-gray-200'); document.getElementById('formContainerBox').classList.remove('bg-yellow-50/30'); const btnText = document.getElementById('btnSaveText'); if (btnText) btnText.textContent = "Simpan Rekod"; document.getElementById('btnCancelEdit').classList.add('hidden'); document.getElementById('btnClearForm').classList.remove('hidden'); document.getElementById('existingAttachmentsBox').classList.add('hidden'); }
+        function clearModalForm() { document.getElementById('m_form_nama').value = ''; document.getElementById('m_form_tarikh').value = new Date().toISOString().split('T')[0]; document.getElementById('m_form_fakulti').value = ''; document.getElementById('m_form_tahap').value = ''; document.getElementById('m_form_matrik').value = ''; document.getElementById('m_form_catatan').value = ''; document.getElementById('fileInput').value = ''; document.getElementById('newFilesList').innerHTML = ''; selectedFilesArray = []; const statusText = document.getElementById('fileProcessingStatus'); if(statusText) { statusText.classList.add('hidden'); statusText.innerHTML = ''; } }
+
+        function toggleSyncUI(show) { const indicator = document.getElementById('syncIndicator'); const bar = document.getElementById('syncProgressBar'); if (show) { indicator.style.display = 'flex'; bar.style.display = 'block'; document.querySelector('header').classList.add('sync-active'); } else { indicator.style.display = 'none'; bar.style.display = 'none'; document.querySelector('header').classList.remove('sync-active'); } }
+
+        async function saveUpdateModal() {
+            const btn = document.getElementById('btnSaveUpdate'); const btnIcon = document.getElementById('iconSaveUpdate'); const btnText = document.getElementById('btnSaveText'); const originalIconClass = btnIcon ? btnIcon.className : ''; const originalTextStr = btnText ? btnText.textContent : 'Simpan Rekod';
+            try {
+                if (!currentEditId) { showToast("Sistem ralat: ID Tindakan tidak dijumpai.", "error"); return; }
+                const pNama = document.getElementById('m_form_nama').value.trim(); if(!pNama) { showToast("Sila masukkan Nama Projek/Laporan Bukti", "error"); return; }
+                const pFakulti = document.getElementById('m_form_fakulti').value; const pTahap = document.getElementById('m_form_tahap').value; const pMatrik = document.getElementById('m_form_matrik').value.trim(); const pCatatan = document.getElementById('m_form_catatan').value.trim();
+                if(btn) btn.disabled = true; if(btnIcon) btnIcon.className = "fa-solid fa-spinner fa-spin mr-2"; if(btnText) btnText.textContent = "Memproses..."; toggleSyncUI(true);
+
+                const payload = {
+                    idKpi: kpiMapping[currentEditId], userEmail: document.getElementById('userIdentifier').textContent,
+                    entryData: { id: editingEntryId || Date.now().toString(), nama: pNama, tarikh: document.getElementById('m_form_tarikh').value, kemajuan: 0, catatan: pCatatan, fakulti: pFakulti, tahap: pTahap, matrik: pMatrik },
+                    quarterData: { q1_val: document.getElementById('q1_input').value.trim(), q1_status: document.querySelector('input[name="q1_status"]:checked') ? document.querySelector('input[name="q1_status"]:checked').value : '', q2_val: document.getElementById('q2_input').value.trim(), q2_status: document.querySelector('input[name="q2_status"]:checked') ? document.querySelector('input[name="q2_status"]:checked').value : '', q3_val: document.getElementById('q3_input').value.trim(), q3_status: document.querySelector('input[name="q3_status"]:checked') ? document.querySelector('input[name="q3_status"]:checked').value : '', q4_val: document.getElementById('q4_input').value.trim(), q4_status: document.querySelector('input[name="q4_status"]:checked') ? document.querySelector('input[name="q4_status"]:checked').value : '', kpi_tercapai: document.getElementById('kpi_tercapai_status').checked }, filesData: selectedFilesArray
+                };
+
+                const res = await gsRun('processUpdate', payload);
+                if (res.success) { await syncData(); if(btnIcon) btnIcon.className = "fa-solid fa-cloud-arrow-up mr-2"; cancelEditMode(); renderModalEntriesList(currentEditId); showToast('Berjaya disimpan ke pangkalan data.'); } 
+                else { throw new Error(res.message); }
+            } catch (err) { showToast('Ralat: ' + err.message, 'error'); if(btnIcon) btnIcon.className = originalIconClass; if(btnText) btnText.textContent = originalTextStr; } finally { if(btn) btn.disabled = false; toggleSyncUI(false); }
+        }
+
+        async function syncData() {
+            toggleSyncUI(true);
+            try {
+                const kpiInfoList = await gsRun('getKpiInfoList');
+                const statusData = await gsRun('getKpiStatus');
+                
+                if (kpiInfoList && kpiInfoList.length > 0) {
+                    const oldReverseMapping = {}; for (const [key, val] of Object.entries(kpiMapping)) { oldReverseMapping[val] = key; }
+                    kpiData = []; for(let key in kpiMapping) delete kpiMapping[key]; let newIdCounter = 1000; 
+                    kpiInfoList.forEach(info => {
+                        let id = oldReverseMapping[info.idKpi] ? parseInt(oldReverseMapping[info.idKpi]) : newIdCounter++;
+                        kpiMapping[id] = info.idKpi;
+                        let item = { id: id, lonjakan: info.lonjakan, initiative: info.initiative || "Pelaksanaan PTA", activity: info.activity, od: info.od, pi: info.pi, evidence: info.evidence, target: String(info.target), unit: info.unit, entries: [], quarterTargets: { q1: info.q1_target || "-", q2: info.q2_target || "-", q3: info.q3_target || "-", q4: info.q4_target || "-" }, current: 0, quarterData: {} };
+                        if (statusData && statusData[info.idKpi]) { const status = statusData[info.idKpi]; item.current = parseFloat(status.current) || 0; item.quarterData = status.quarterData || {}; item.entries = status.entries || []; }
+                        kpiData.push(item);
+                    });
+                } else if (statusData) {
+                    for (const [kpiId, status] of Object.entries(statusData)) { const entryId = Object.keys(kpiMapping).find(key => kpiMapping[key] === kpiId); if (entryId) { const item = kpiData.find(k => k.id == entryId); if (item) { item.current = parseFloat(status.current) || 0; item.quarterData = status.quarterData || {}; item.entries = status.entries || []; } } }
+                }
+                updateDashboard();
+                if (currentEditId) renderModalEntriesList(currentEditId);
+            } catch (err) { showToast('Gagal menyegerak: ' + err.message, 'error'); } finally { toggleSyncUI(false); }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (document.getElementById('progressChart')) {
+                    const ctx = document.getElementById('progressChart').getContext('2d');
+                    progressChart = new Chart(ctx, {
+                        type: 'bar', data: { labels: ['Status'], datasets: [
+                            { label: 'Dicapai', data: [0], backgroundColor: '#10B981' },
+                            { label: 'Proses', data: [0], backgroundColor: '#F59E0B' },
+                            { label: 'Belum Dilaksanakan', data: [100], backgroundColor: '#475569' }
+                        ]},
+                        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#fff', font: { weight: 'bold', size: 12 }, formatter: (v) => v > 0 ? v + '%' : '' } }, scales: { x: { stacked: true, max: 100, display: false }, y: { stacked: true, display: false } } }
+                    });
+                }
+            } catch(e) {}
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ms-MY', dateOptions);
+            
+            document.getElementById('dashboardScreen').style.display = 'flex';
+            document.getElementById('userIdentifier').textContent = CURRENT_USER_EMAIL || 'Akses Pantau';
+
+            if (!isAuthenticated) {
+                showAccessDenied();
+            }
+
+            updateDashboard(); 
+            syncData();
+            
+            if (typeof feather !== 'undefined') feather.replace();
+        });
+
+        function showToast(msg, type = 'success') {
+            const t = document.createElement('div');
+            t.className = `fixed bottom-5 right-5 ${type === 'error' ? 'bg-red-600' : 'bg-gray-900'} text-white px-6 py-3 rounded-2xl shadow-2xl z-[400] text-xs font-bold flex items-center transform transition-all duration-300 translate-y-20`;
+            t.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'} mr-3 text-lg"></i> ${msg}`;
+            document.body.appendChild(t); setTimeout(() => t.classList.remove('translate-y-20'), 10); setTimeout(() => { t.classList.add('translate-y-20'); setTimeout(() => t.remove(), 300); }, 3000);
+        }
+        window.resetData = () => { kpiData = JSON.parse(JSON.stringify(initialData)); updateDashboard(); showToast('Data visual diset semula.'); };
+    </script>
+</body>
+</html>
