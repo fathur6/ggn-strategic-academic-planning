@@ -4,10 +4,12 @@
  */
 
 const FOLDER_SISTEM_KECIL_ID = PropertiesService.getScriptProperties().getProperty('FOLDER_SISTEM_KECIL_ID') || '';
+const FOLDER_PSU_ID = PropertiesService.getScriptProperties().getProperty('FOLDER_PSU_ID') || FOLDER_SISTEM_KECIL_ID;
 const SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '';
 const SHEET_NAME_STATUS = "Status_Semasa";
 const SHEET_NAME_LOG = "Log_Kemaskini";
 const SHEET_NAME_MAKLUMAT = "Maklumat_Lonjakan";
+const SHEET_NAME_PSU = "Pelan_Strategik_Universiti";
 
 function getSS() {
   return SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -20,6 +22,7 @@ function doPost(e) {
     if (payload.action === "deleteEntry") return ContentService.createTextOutput(JSON.stringify(deleteEntryRecord(payload))).setMimeType(ContentService.MimeType.JSON);
     if (payload.action === "updateKpiInfo") return ContentService.createTextOutput(JSON.stringify(updateKpiInfo(payload))).setMimeType(ContentService.MimeType.JSON);
     if (payload.action === "deleteKpiInfo") return ContentService.createTextOutput(JSON.stringify(deleteKpiInfoRecord(payload))).setMimeType(ContentService.MimeType.JSON);
+    if (payload.action === "processUpdatePSU") return ContentService.createTextOutput(JSON.stringify(processUpdatePSU(payload))).setMimeType(ContentService.MimeType.JSON);
     return ContentService.createTextOutput(JSON.stringify({success: false, message: "Aksi tidak dikenali."})).setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({success: false, message: "Ralat HTTP: " + err.message})).setMimeType(ContentService.MimeType.JSON);
@@ -30,12 +33,18 @@ function doGet(e) {
   if (e && e.parameter && e.parameter.action === "getKpiStatus") {
     return ContentService.createTextOutput(JSON.stringify({ success: true, data: getKpiStatus(), kpiInfo: getKpiInfoList() })).setMimeType(ContentService.MimeType.JSON);
   }
+  if (e && e.parameter && e.parameter.action === "getPSUStatus") {
+    return ContentService.createTextOutput(JSON.stringify({ success: true, data: getPelanStrategikData() })).setMimeType(ContentService.MimeType.JSON);
+  }
 
   var userEmail = "";
   try { userEmail = Session.getActiveUser().getEmail(); } catch(ex) { userEmail = ""; }
   if (!userEmail) userEmail = "";
 
   var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('PSU_SETUP_DONE')) {
+    try { setupPelanStrategikUniversiti(); props.setProperty('PSU_SETUP_DONE', 'true'); } catch(e) {}
+  }
   var adminListJson = props.getProperty('ADMIN_EMAILS');
   if (!adminListJson) {
     var defaultAdmins = ["SET_ADMIN_EMAILS_IN_SCRIPT_PROPERTIES"];
@@ -46,6 +55,7 @@ function doGet(e) {
   var template = HtmlService.createTemplateFromFile('index');
   template.userEmail = userEmail;
   template.adminListJson = adminListJson;
+  template.PSU_DATA = JSON.stringify(getPelanStrategikData());
 
   return template.evaluate()
       .setTitle('Dashboard Pemantauan PTA 2026 - PPS')
@@ -147,3 +157,73 @@ function getKpiStatus() {
 function setupMaklumatLonjakan() { const ss = getSS(); let sheet = ss.getSheetByName(SHEET_NAME_MAKLUMAT); if (!sheet) sheet = ss.insertSheet(SHEET_NAME_MAKLUMAT); const headers = ["ID KPI","Lonjakan","Inisiatif","Aktiviti","Definisi Operasi (OD)","Petunjuk Prestasi (PI)","Sasaran Keseluruhan","Unit","Bukti","Sasaran Q1","Sasaran Q2","Sasaran Q3","Sasaran Q4"]; sheet.getRange(1,1,1,headers.length).setValues([headers]).setBackground("#FBB03B").setFontColor("black").setFontWeight("bold"); if (sheet.getLastRow()===1) { const d = [["L7-KPI-01","Lonjakan 7: Keunggulan Global","Global Networking","Bilangan Pemeriksa Luar Antarabangsa","...",72,"penilai luar negara","Surat Pelantikan","18","36","54","72"],["L7-KPI-02","Lonjakan 7: Keunggulan Global","Global Networking","Bilangan Staf Akademik Antarabangsa sebagai Penyelia Bersama","...",200,"penyelia","Surat Pelantikan / Borang GS-04","50","100","150","200"],["L7-KPI-03","Lonjakan 7: Keunggulan Global","FlexS@Global","Dialog Antarabangsa","...",5,"kolaborator","Laporan Pelaksanaan Program","MoU","5 penceramah","International Dialogue","-"],["L7-KPI-10","Lonjakan 7: Keunggulan Global","Global university engagement","Enrollment of international students","...",1500,"Pelajar","Complete list","-","Promotion","750","1500"],["L8-KPI-04","Lonjakan 8: Pendidikan Fleksibel & PSH","Program Akademik Fleksibel","Kursus Fleksibel","...",1,"Course","Surat / Dokumen","-","Complete Course Plan","1 MOOC course","-"],["L8-KPI-05","Lonjakan 8: Pendidikan Fleksibel & PSH","Program PSH Bukan Formal","Program Bukan Formal","...",2,"program","Laporan Lengkap","-","-","1 program","2 program"],["L8-KPI-06","Lonjakan 8: Pendidikan Fleksibel & PSH","Micro-Credentials","Penawaran MC Formal","...",1,"Modul MC","Surat/Dokumen","-","Complete Modul Plan","1 Modul MC","-"],["L8-KPI-07","Lonjakan 8: Pendidikan Fleksibel & PSH","Program PSH Informal","Program PSH Informal","...",2,"program","Laporan Lengkap","-","1 program","-","2 program"],["L10-KPI-08","Lonjakan 10: Penyampaian Responsif & Dinamik","Nexus Learning Landscape","Pewujudan Green Learning Common Spaces","...",1,"Ruang","Laporan Penubuhan","-","Kertas Kerja","Kelulusan","1 Ruang"],["L10-KPI-09","Lonjakan 10: Penyampaian Responsif & Dinamik","E-Learning Platform","Pembangunan Fungsi KELIP","...",1,"Fungsi","Laporan Aktiviti","-","-","Fungsi Tambahan AI","-"]]; sheet.getRange(2,1,d.length,headers.length).setValues(d); } sheet.autoResizeColumns(1,headers.length); let sheetLog = ss.getSheetByName(SHEET_NAME_LOG); if (!sheetLog) sheetLog = ss.insertSheet(SHEET_NAME_LOG); const hdr = ["ID Entry","Timestamp","User Email","ID KPI","Nama Projek/Laporan","Tarikh","Kemajuan","Catatan","Nama Fail","URL Fail","Fakulti","Tahap Pengajian","No. Matrik"]; sheetLog.getRange(1,1,1,hdr.length).setValues([hdr]).setBackground("#002C5F").setFontColor("white").setFontWeight("bold"); return "Berjaya!"; }
 
 function benarkanAksesDrive() { try { var root = DriveApp.getFolderById(FOLDER_SISTEM_KECIL_ID); var sub = findOrCreateSubFolder(root, "PTA-PSU 2026"); var test = sub.createFolder("Folder_Ujian_Padam"); test.setTrashed(true); Logger.log("BERJAYA: Susunan folder PTA-PSU 2026 sedia digunakan!"); } catch(e) { Logger.log("RALAT: " + e.message); throw e; } }
+
+function setupPelanStrategikUniversiti() {
+  const ss = getSS();
+  let sheet = ss.getSheetByName(SHEET_NAME_PSU);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME_PSU);
+  const headers = ["No","Strategi Pelaksanaan","Inisiatif","No Aktiviti","Aktiviti","Indikator Pengukuran","Sasaran KPI 2026 (Universiti)","Bilangan Sasaran KPI 2026 (PTj)","Status","Pencapaian Semasa","Bukti/URL","Catatan"];
+  sheet.getRange(1,1,1,headers.length).setValues([headers]).setBackground("#002C5F").setFontColor("white").setFontWeight("bold");
+  if (sheet.getLastRow() === 1) {
+    const data = [
+      ["PSU-01","SP1: Future Ready Curriculum","Curriculum Innovations (Flexible Academic Programmes)","1","Flexible Course (MOOC)","Number of courses","4 (3 MPU Courses, 1 RMC (PPS))","3 MPU Courses, 1 RMC (PPS)","","","",""],
+      ["PSU-02","SP1: Future Ready Curriculum","","2","Apppointment of international academic staff - External Examiners","Percentage of international External Examiners (based on confirmed Viva-Voce candidates)","Faculty (except FUPL): 40%","40%","","","",""],
+      ["PSU-03","SP1: Future Ready Curriculum","","2","Appointment of international academic staff - Co-Supervisor (PG)","Number of international academic staff as Co-Supervisor (PG)","200 international academic staff of Co-Supervisor","Contributed by any faculties except FUPL","","","",""],
+      ["PSU-04","SP1: Future Ready Curriculum","Global Networking","3","Enrollment of international students in academic programmes","Number of international student enrollments (60% (900) from other countries than Indonesia)","1500","1500","","","",""],
+      ["PSU-05","SP1: Future Ready Curriculum","Industry-based Learning","4","Industrial involvement in student assessment","Number of industry co-supervisors or External Examiners","10 industry co-supervisors or External Examiners","1 (Fakulti terlibat)","","","",""],
+      ["PSU-06","SP2: Sustainable Learning Ecosystem","Establish a Green Learning Common Spaces that leverages AI-driven adaptive environment","5","Number of learning common spaces","2 lounge (KB and KGB), PWB:1, PPS:1","1 Green learning common- PWB","0","","","",""]
+    ];
+    sheet.getRange(2,1,data.length,headers.length).setValues(data);
+  }
+  sheet.autoResizeColumns(1, headers.length);
+  return "Pelan Strategik Universiti sheet siap.";
+}
+
+function getPelanStrategikData() {
+  const ss = getSS(); const sheet = ss.getSheetByName(SHEET_NAME_PSU);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const result = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) {
+      result.push({
+        id: data[i][0], no: data[i][0], strategi: data[i][1]||"", inisiatif: data[i][2]||"",
+        noAktiviti: data[i][3]||"", aktiviti: data[i][4]||"", indikator: data[i][5]||"",
+        sasaranUniv: data[i][6]||"", sasaranPTj: data[i][7]||"",
+        status: data[i][8]||"Belum Mula", pencapaian: data[i][9]||"", bukti: data[i][10]||"", catatan: data[i][11]||""
+      });
+    }
+  }
+  return result;
+}
+
+function processUpdatePSU(payload) {
+  const ss = getSS(); const sheet = ss.getSheetByName(SHEET_NAME_PSU);
+  if (!sheet) return { success: false, message: "Sheet PSU belum dibina." };
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === payload.id) { rowIndex = i + 1; break; }
+  }
+  if (rowIndex !== -1) {
+    if (payload.status !== undefined) sheet.getRange(rowIndex, 9).setValue(payload.status);
+    if (payload.pencapaian !== undefined) sheet.getRange(rowIndex, 10).setValue(payload.pencapaian);
+    if (payload.bukti !== undefined) sheet.getRange(rowIndex, 11).setValue(payload.bukti);
+    if (payload.catatan !== undefined) sheet.getRange(rowIndex, 12).setValue(payload.catatan);
+  } else {
+    sheet.appendRow([payload.id, payload.strategi||"", payload.inisiatif||"", payload.noAktiviti||"", payload.aktiviti||"", payload.indikator||"", payload.sasaranUniv||"", payload.sasaranPTj||"", payload.status||"Belum Mula", payload.pencapaian||"", payload.bukti||"", payload.catatan||""]);
+  }
+  try { managePSUFolderStructure(payload.id); } catch(e) {}
+  return { success: true, message: "Data PSU dikemaskini." };
+}
+
+function managePSUFolderStructure(idPSU) {
+  if (!FOLDER_PSU_ID) throw new Error("FOLDER_PSU_ID not set");
+  const rootFolder = DriveApp.getFolderById(FOLDER_PSU_ID);
+  let psuFolder = findOrCreateSubFolder(rootFolder, "Pelan Strategik Universiti");
+  let ptaYearFolder = findOrCreateSubFolder(psuFolder, "2026");
+  const item = getPelanStrategikData().find(p => p.id === idPSU);
+  const safeAktiviti = item ? item.aktiviti.replace(/[\\/:\*\?"<>|]/g, '-').substring(0, 80) : idPSU;
+  let activityFolder = findOrCreateSubFolder(ptaYearFolder, idPSU + "_" + safeAktiviti);
+  return activityFolder;
+}

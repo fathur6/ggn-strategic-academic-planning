@@ -403,6 +403,24 @@
         </header>
 
         <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-1 h-6 bg-gradient-to-b from-blue-400 to-cyan-400 rounded-full"></div>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-widest">Pelan Strategik Universiti</h2>
+                    <div class="flex gap-2 ml-auto">
+                        <button onclick="setPSUFilter('all', this)" class="filter-chip active psu-chip">Semua</button>
+                        <button onclick="setPSUFilter('SP1', this)" class="filter-chip psu-chip">SP1</button>
+                        <button onclick="setPSUFilter('SP2', this)" class="filter-chip psu-chip">SP2</button>
+                    </div>
+                </div>
+                <div id="psuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-2"></div>
+                <div id="psuDetailPanel" class="hidden mb-4"></div>
+            </div>
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-400 rounded-full"></div>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-widest">Pelan Tindakan Akademik</h2>
+                </div>
             <div class="flex flex-wrap items-center gap-3 mb-6">
                 <input type="text" id="kpiSearchInput" placeholder="Cari aktiviti..." oninput="filterKpiGrid()" class="flex-1 min-w-[200px] bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                 <div class="flex flex-wrap gap-2" id="lonjakanFilterChips">
@@ -430,6 +448,7 @@
         const ADMIN_LIST = <?!= adminListJson ?>;
         let isAuthenticated = CURRENT_USER_EMAIL && ADMIN_LIST && ADMIN_LIST.includes(CURRENT_USER_EMAIL);
         const GOOGLE_SCRIPT_URL = window.location.href.split('?')[0];
+        const PSU_DATA = <?!= PSU_DATA ?>;
 
         function gsRun(functionName, ...args) {
             return new Promise((resolve, reject) => {
@@ -571,7 +590,9 @@
             if (btn) btn.classList.add('active');
             renderKpiGrid();
         }
-        function filterKpiGrid() { renderKpiGrid(); }
+        function filterKpiGrid() {             renderKpiGrid();
+            renderPSUGrid();
+        }
 
         function expandKpi(id) {
             var item = kpiData.find(function(k) { return k.id == id; });
@@ -618,6 +639,76 @@
             panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         function closeKpiDetail() { var panel = document.getElementById('kpiDetailPanel'); panel.classList.add('hidden'); panel.innerHTML = ''; }
+
+        var currentPSUFilter = 'all';
+        function setPSUFilter(val, btn) {
+            currentPSUFilter = val;
+            var chips = document.querySelectorAll('.psu-chip');
+            chips.forEach(function(c) { c.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
+            renderPSUGrid();
+        }
+
+        function getPSUStatusClass(status) {
+            if (status === 'Selesai') return 'status-badge-selesai';
+            if (status === 'Berjalan') return 'status-badge-berjalan';
+            return 'status-badge-belum';
+        }
+
+        function getPSUBarColor(strategi) {
+            if (strategi.includes('SP1')) return 'progress-bar-l7';
+            if (strategi.includes('SP2')) return 'progress-bar-l10';
+            return 'progress-bar-l8';
+        }
+
+        function renderPSUGrid() {
+            var grid = document.getElementById('psuGrid');
+            if (!grid) return;
+            var filtered = PSU_DATA;
+            if (currentPSUFilter !== 'all') {
+                filtered = PSU_DATA.filter(function(p) { return p.strategi.includes(currentPSUFilter); });
+            }
+            var html = '';
+            filtered.forEach(function(item) {
+                var status = item.status || 'Belum Mula';
+                var statusClass = getPSUStatusClass(status);
+                var barColor = getPSUBarColor(item.strategi);
+                var pencapaianNum = parseFloat(item.pencapaian) || 0;
+                var targetStr = item.sasaranUniv || '';
+                var targetNum = parseFloat(targetStr.match(/\d+/)) || 100;
+                var percent = targetNum > 0 ? Math.min(100, (pencapaianNum / targetNum) * 100) : 0;
+                html += '<div class="kpi-card kpi-card-l8" onclick="expandPSU(\'' + item.id + '\')" style="border-left-color:#06b6d4">';
+                html += '<div class="flex items-start justify-between mb-2"><span class="text-xs font-bold uppercase tracking-wider text-cyan-400">' + item.no + '</span><div class="flex items-center gap-2"><span class="px-2 py-0.5 text-[10px] font-bold rounded-full ' + statusClass + '">' + status + '</span></div></div>';
+                html += '<h4 class="text-sm font-semibold text-slate-200 mb-3 leading-snug line-clamp-2">' + item.aktiviti + '</h4>';
+                html += '<div class="flex items-center justify-between text-[11px] text-slate-400 mb-1"><span class="text-cyan-400 font-bold text-[10px]">' + item.strategi + '</span><span class="font-bold text-white">' + Math.round(percent) + '%</span></div>';
+                html += '<div class="progress-bar-bg mb-2"><div class="' + barColor + '" style="width:' + percent + '%;background:linear-gradient(90deg,#06b6d4,#22d3ee)"></div></div>';
+                html += '<div class="text-[10px] text-slate-500"><span>Sasaran: ' + item.sasaranPTj + '</span></div>';
+                html += '</div>';
+            });
+            if (html === '') html = '<div class="col-span-full text-center text-slate-500 py-8 text-sm">Tiada aktiviti PSU ditemui.</div>';
+            grid.innerHTML = html;
+        }
+
+        function expandPSU(id) {
+            var item = PSU_DATA.find(function(p) { return p.id === id; });
+            if (!item) return;
+            var panel = document.getElementById('psuDetailPanel');
+            var pencapaianNum = parseFloat(item.pencapaian) || 0;
+            var targetStr = item.sasaranUniv || '';
+            var targetNum = parseFloat(targetStr.match(/\d+/)) || 100;
+            var percent = targetNum > 0 ? Math.min(100, (pencapaianNum / targetNum) * 100) : 0;
+            var detailHtml = '<div class="glass-card rounded-2xl p-6 animate-fadeIn" style="border-left:4px solid #06b6d4">';
+            detailHtml += '<div class="flex items-start justify-between mb-4"><div><span class="text-[10px] font-bold tracking-widest text-cyan-400 uppercase block mb-1">' + item.strategi + '</span><h3 class="text-lg font-bold text-white">' + item.aktiviti + '</h3><p class="text-xs text-slate-400 mt-1">' + (item.inisiatif || 'Tiada maklumat') + '</p></div><button onclick="closePSUDetail()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-times text-lg"></i></button></div>';
+            detailHtml += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Sasaran Univ</p><p class="text-lg font-bold text-white">' + item.sasaranUniv + '</p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Sasaran PTj</p><p class="text-lg font-bold text-white">' + item.sasaranPTj + '</p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Pencapaian</p><p class="text-lg font-bold text-cyan-400">' + Math.round(percent) + '%</p></div></div>';
+            detailHtml += '<div class="progress-bar-bg mb-4 h-3"><div style="width:' + percent + '%;height:100%;background:linear-gradient(90deg,#06b6d4,#22d3ee);border-radius:9999px;transition:width 0.7s ease"></div></div>';
+            detailHtml += '<div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-slate-700"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-bullseye mr-1 text-cyan-400"></i> Indikator Pengukuran</h5><p class="text-sm text-slate-300">' + item.indikator + '</p></div>';
+            detailHtml += '<div class="flex gap-3"><button onclick="closePSUDetail()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-bold rounded-lg transition">Tutup</button></div>';
+            detailHtml += '</div>';
+            panel.innerHTML = detailHtml;
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        function closePSUDetail() { var panel = document.getElementById('psuDetailPanel'); panel.classList.add('hidden'); panel.innerHTML = ''; }
 
         function openPreviewOverlay(urlStr, nameStr) {
             if (!urlStr || urlStr === 'undefined') { showToast("Tiada fail dilampirkan.", "error"); return; }
