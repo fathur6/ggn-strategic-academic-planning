@@ -403,40 +403,48 @@
         </header>
 
         <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
-            <div class="mb-8">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-1 h-6 bg-gradient-to-b from-blue-400 to-cyan-400 rounded-full"></div>
-                    <h2 class="text-sm font-bold text-white uppercase tracking-widest">Pelan Strategik Universiti</h2>
-                    <div class="flex gap-2 ml-auto">
-                        <button onclick="setPSUFilter('all', this)" class="filter-chip active psu-chip">Semua</button>
-                        <button onclick="setPSUFilter('SP1', this)" class="filter-chip psu-chip">SP1</button>
-                        <button onclick="setPSUFilter('SP2', this)" class="filter-chip psu-chip">SP2</button>
+            <div class="glass-card rounded-2xl p-6 border-slate-700">
+                <div class="flex flex-wrap justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                    <div class="flex space-x-6">
+                        <button id="tabPTABtn" onclick="switchTab('PTA')" class="text-sm font-bold text-blue-400 border-b-[3px] border-blue-400 pb-1.5 transition cursor-pointer">Pelan Tindakan Akademik (PTA)</button>
+                        <button id="tabPSUBtn" onclick="switchTab('PSU')" class="text-sm font-bold text-slate-500 hover:text-slate-300 border-b-[3px] border-transparent pb-1.5 transition cursor-pointer">Pelan Strategik Universiti (PSU)</button>
+                    </div>
+                    <div id="adminActionBtns" class="flex items-center space-x-2 mt-3 sm:mt-0">
+                        <button onclick="btnOpenAddAktivitiModal(event)" class="text-[10px] font-bold text-blue-400 border border-blue-500/30 hover:bg-blue-900/30 px-3 py-1.5 rounded-lg transition uppercase tracking-widest shadow-sm"><i class="fa-solid fa-plus mr-1"></i> Tambah</button>
+                        <button onclick="btnResetData()" class="text-[10px] font-bold text-slate-400 border border-slate-600 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition uppercase tracking-widest shadow-sm"><i class="fa-solid fa-rotate-right mr-1"></i> Reset</button>
                     </div>
                 </div>
-                <div id="psuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-2"></div>
-                <div id="psuDetailPanel" class="hidden mb-4"></div>
+                <div id="kpiContainer" class="space-y-8"></div>
             </div>
-            <div class="mb-8">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-400 rounded-full"></div>
-                    <h2 class="text-sm font-bold text-white uppercase tracking-widest">Pelan Tindakan Akademik</h2>
-                </div>
-            <div class="flex flex-wrap items-center gap-3 mb-6">
-                <input type="text" id="kpiSearchInput" placeholder="Cari aktiviti..." oninput="filterKpiGrid()" class="flex-1 min-w-[200px] bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
-                <div class="flex flex-wrap gap-2" id="lonjakanFilterChips">
-                    <button onclick="setLonjakanFilter('all', this)" class="filter-chip active">Semua</button>
-                    <button onclick="setLonjakanFilter('L7', this)" class="filter-chip">L7</button>
-                    <button onclick="setLonjakanFilter('L8', this)" class="filter-chip">L8</button>
-                    <button onclick="setLonjakanFilter('L10', this)" class="filter-chip">L10</button>
-                </div>
-            </div>
-            <div id="kpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
-            <div id="kpiDetailPanel" class="hidden mb-8"></div>
         </main>
 
         <footer class="bg-slate-900 border-t border-slate-800 mt-auto py-4 text-center">
-            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">&copy; 2026 Pelan Tindakan Akademik Pusat Pengajian Siswazah</p>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">&copy; 2026 Pelan Tindakan Akademik &amp; Pelan Strategik Universiti PPS</p>
         </footer>
+    </div>
+
+    <div id="psuUpdateModal" class="absolute inset-0 z-[200] hidden flex-col items-center justify-start px-4 bg-slate-900/80 backdrop-blur-sm pb-20">
+        <div id="psuUpdateModalBox" class="bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col transform transition-all scale-100 relative max-h-[85vh] mt-10">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-start flex-shrink-0">
+                <div><span id="psu_m_initiative" class="text-[9px] font-bold tracking-widest text-slate-400 uppercase mb-1 block"></span><h3 id="psu_m_activity" class="font-bold text-xl text-white"></h3><p id="psu_m_lonjakan" class="text-slate-400 text-xs mt-1"></p></div>
+                <button onclick="closePsuModal()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 flex-grow overflow-y-auto modal-scroll space-y-6">
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4"><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Sasaran</p><p class="text-2xl font-bold text-white" id="psu_m_target"></p></div>
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4"><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Pencapaian</p><p class="text-2xl font-bold text-white" id="psu_m_current"></p></div>
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-4"><p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Peratusan</p><p class="text-2xl font-bold text-white" id="psu_m_percent"></p></div>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-1.5"><div id="psu_m_progressbar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-700" style="width:0%"></div></div>
+                <div class="flex justify-between text-[9px] font-bold tracking-widest text-slate-500 uppercase mt-6"><span>Kemajuan Sukuan (Q1-Q4)</span></div>
+                <div class="w-full flex gap-2 h-2 mb-4"><div id="psu_m_q1" class="flex-1 rounded-full bg-slate-700"></div><div id="psu_m_q2" class="flex-1 rounded-full bg-slate-700"></div><div id="psu_m_q3" class="flex-1 rounded-full bg-slate-700"></div><div id="psu_m_q4" class="flex-1 rounded-full bg-slate-700"></div></div>
+                <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-5"><h4 class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3"><i class="fa-solid fa-circle-info mr-2 text-blue-400"></i> Indikator Pengukuran</h4><p id="psu_m_indikator" class="text-slate-400 text-sm leading-relaxed"></p></div>
+                <div class="mt-6"><h4 class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3"><i class="fa-solid fa-list mr-2 text-emerald-400"></i> Rekod Bukti (<span id="psu_m_entries_count">0</span>)</h4><div id="psu_m_entries_container" class="space-y-3"></div></div>
+            </div>
+            <div class="px-6 py-4 bg-[#0f172a] border-t border-slate-800 flex justify-end space-x-3 rounded-b-2xl flex-shrink-0">
+                <button onclick="closePsuModal()" class="px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-700 hover:text-white shadow-sm">Tutup</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -528,18 +536,30 @@
 
         function updateDashboard() {
             let achieved = 0, inProgress = 0, totalPercentSum = 0;
-            kpiData.forEach(kpi => {
+            let filtered = currentTab === 'PSU' ? PSU_DATA : kpiData;
+            filtered.forEach(kpi => {
                 if(!kpi.entries) kpi.entries = [];
                 let qData = kpi.quarterData || {};
                 let v1 = extractNumber(qData.q1_val), v2 = extractNumber(qData.q2_val), v3 = extractNumber(qData.q3_val), v4 = extractNumber(qData.q4_val);
                 kpi.current = Math.max(v1, v2, v3, v4);
                 let targetNum = extractNumber(kpi.target);
-                if (targetNum > 0) {
-                    if (kpi.current >= targetNum) achieved++; else if (kpi.current > 0) inProgress++;
-                    totalPercentSum += Math.min(100, (kpi.current / targetNum) * 100);
-                } else { if (kpi.current > 0) inProgress++; }
+                if (targetNum > 0) { if (kpi.current >= targetNum) achieved++; else if (kpi.current > 0) inProgress++; totalPercentSum += Math.min(100, (kpi.current / targetNum) * 100); }
+                else { if (kpi.current > 0) inProgress++; }
             });
-            renderKpiGrid();
+            let totalItems = filtered.length;
+            let achievedPercent = totalItems > 0 ? Math.round((achieved / totalItems) * 100) : 0;
+            let inProgressPercent = totalItems > 0 ? Math.round((inProgress / totalItems) * 100) : 0;
+            let notStartedPercent = 100 - achievedPercent - inProgressPercent;
+            if (progressChart) { try { progressChart.data.datasets[0].data = [achievedPercent]; progressChart.data.datasets[1].data = [inProgressPercent]; progressChart.data.datasets[2].data = [notStartedPercent]; progressChart.update(); } catch(e) {} }
+            renderTable();
+        }
+
+        var currentTab = 'PTA';
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tabPTABtn').className = tab === 'PTA' ? "text-sm font-bold text-blue-400 border-b-[3px] border-blue-400 pb-1.5 transition cursor-pointer" : "text-sm font-bold text-slate-500 hover:text-slate-300 border-b-[3px] border-transparent pb-1.5 transition cursor-pointer";
+            document.getElementById('tabPSUBtn').className = tab === 'PSU' ? "text-sm font-bold text-blue-400 border-b-[3px] border-blue-400 pb-1.5 transition cursor-pointer" : "text-sm font-bold text-slate-500 hover:text-slate-300 border-b-[3px] border-transparent pb-1.5 transition cursor-pointer";
+            updateDashboard();
         }
 
         function getLonjakanClass(lonjakan) {
@@ -549,166 +569,89 @@
             return 'l7';
         }
 
-        function renderKpiGrid() {
-            var grid = document.getElementById('kpiGrid');
-            if (!grid) return;
-            var searchTerm = (document.getElementById('kpiSearchInput') ? document.getElementById('kpiSearchInput').value : '').toLowerCase();
-            var filtered = kpiData;
-            if (currentLonjakanFilter !== 'all') {
-                var lc = currentLonjakanFilter;
-                filtered = kpiData.filter(function(k) { return getLonjakanClass(k.lonjakan) === lc; });
-            }
-            if (searchTerm) {
-                filtered = filtered.filter(function(k) { return k.activity.toLowerCase().includes(searchTerm) || k.lonjakan.toLowerCase().includes(searchTerm); });
-            }
-            var html = '';
-            filtered.forEach(function(item) {
-                var targetNum = extractNumber(item.target);
-                var status = (item.current >= targetNum && targetNum > 0) ? {label:'Selesai', cls:'status-badge-selesai'} : (item.current > 0 ? {label:'Berjalan', cls:'status-badge-berjalan'} : {label:'Belum Mula', cls:'status-badge-belum'});
-                var percent = targetNum > 0 ? Math.min(100, (item.current / targetNum) * 100) : 0;
-                var lc = getLonjakanClass(item.lonjakan);
-                var kpiCode = '';
-                for (var key in kpiMapping) { if (kpiMapping[key] === 'L' + lc.toUpperCase() + '-KPI-' + item.id) { kpiCode = kpiMapping[key]; break; } }
-                if (!kpiCode) kpiCode = item.lonjakan.split(':')[0] || 'KPI';
-                html += '<div class="kpi-card kpi-card-' + lc + '" onclick="expandKpi(' + item.id + ')">';
-                html += '<div class="flex items-start justify-between mb-2"><span class="text-xs font-bold uppercase tracking-wider" style="color:' + (lc==='l7'?'#60a5fa':lc==='l8'?'#fbbf24':'#34d399') + '">' + kpiCode + '</span><div class="flex items-center gap-2"><span class="px-2 py-0.5 text-[10px] font-bold rounded-full ' + status.cls + '">' + status.label + '</span></div></div>';
-                html += '<h4 class="text-sm font-semibold text-slate-200 mb-3 leading-snug line-clamp-2">' + item.activity + '</h4>';
-                html += '<div class="flex items-center justify-between text-[11px] text-slate-400 mb-2"><span>' + item.current + ' / ' + item.target + ' ' + item.unit + '</span><span class="font-bold text-white">' + Math.round(percent) + '%</span></div>';
-                html += '<div class="progress-bar-bg mb-2"><div class="progress-bar-' + lc + '" style="width:' + percent + '%"></div></div>';
-                html += '<div class="flex items-center justify-between text-[9px] text-slate-500"><span>' + item.lonjakan.substring(0,40) + '</span><i class="fa-solid fa-chevron-right text-slate-600"></i></div>';
-                html += '</div>';
-            });
-            if (html === '') html = '<div class="col-span-full text-center text-slate-500 py-12 text-sm">Tiada KPI ditemui.</div>';
-            grid.innerHTML = html;
-        }
+        function renderTable() {
+            var container = document.getElementById('kpiContainer');
+            if (!container) return;
+            container.innerHTML = '';
 
-        var currentLonjakanFilter = 'all';
-        function setLonjakanFilter(val, btn) {
-            currentLonjakanFilter = val;
-            var chips = document.querySelectorAll('#lonjakanFilterChips button');
-            chips.forEach(function(c) { c.classList.remove('active'); });
-            if (btn) btn.classList.add('active');
-            renderKpiGrid();
-        }
-        function filterKpiGrid() {             renderKpiGrid();
-            renderPSUGrid();
-        }
-
-        function expandKpi(id) {
-            var item = kpiData.find(function(k) { return k.id == id; });
-            if (!item) return;
-            var panel = document.getElementById('kpiDetailPanel');
-            var targetNum = extractNumber(item.target);
-            var percent = targetNum > 0 ? Math.min(100, (item.current / targetNum) * 100) : 0;
-            var lc = getLonjakanClass(item.lonjakan);
-            var borderColor = lc === 'l7' ? '#3b82f6' : lc === 'l8' ? '#f59e0b' : '#10b981';
-            var entriesHtml = '';
-            if (item.entries && item.entries.length > 0) {
-                entriesHtml = '<div class="mt-4"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center"><i class="fa-solid fa-list-ul mr-1.5"></i> Rekod Bukti Disimpan (' + item.entries.length + ')</h5><div class="space-y-2 max-h-48 overflow-y-auto pr-2 entries-scroll">';
-                item.entries.forEach(function(e) {
-                    var fileDisplay = '';
-                    if (e.fileName && typeof e.fileName === 'string' && e.fileName.trim() !== '') {
-                        var names = e.fileName.split(',').filter(function(s) { return s.trim().length > 0; });
-                        if (names.length > 0) {
-                            var safeUrlStr = (e.fileUrl || '').replace(/'/g, "\\'");
-                            var safeNameStr = (e.fileName || '').replace(/'/g, "\\'");
-                            fileDisplay = '<button onclick="openPreviewOverlay(\'' + safeUrlStr + '\', \'' + safeNameStr + '\')" class="ml-2 text-blue-400 hover:text-blue-300 text-[10px] font-semibold transition flex items-center bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded cursor-pointer"><i class="fa-solid fa-paperclip mr-1"></i>' + names.length + ' Lampiran</button>';
-                        }
-                    }
-                    entriesHtml += '<div class="flex items-start justify-between text-xs bg-slate-800/50 p-3 rounded-lg border border-slate-700"><div><span class="font-bold text-slate-200 block text-sm mb-1">' + e.nama + '</span><span class="text-slate-400 text-[10px] flex items-center"><i class="fa-regular fa-calendar mr-1 text-blue-400"></i>' + e.tarikh + fileDisplay + '</span></div></div>';
+            if (currentTab === 'PSU') {
+                container.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
+                PSU_DATA.forEach(function(item) {
+                    var targetStr = item.sasaranUniv || '';
+                    var targetNum = parseFloat((targetStr.match(/\d+/) || [0])[0]) || 100;
+                    var currentNum = parseFloat(item.pencapaian) || 0;
+                    var percent = targetNum > 0 ? Math.min(100, (currentNum / targetNum) * 100) : 0;
+                    var isSelesai = item.status === 'Selesai';
+                    var isBerjalan = item.status === 'Berjalan';
+                    var statusBg = isSelesai ? 'bg-emerald-900/50 text-emerald-400 border-emerald-500/30' : (isBerjalan ? 'bg-amber-900/50 text-amber-500 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700');
+                    var borderColor = isSelesai ? 'border-l-emerald-500' : (isBerjalan ? 'border-l-amber-500' : 'border-l-blue-500');
+                    var statusLabel = item.status || 'Belum Mula';
+                    container.innerHTML += '<div onclick="openPsuModal(\'' + item.id + '\')" class="bg-[#1e293b] border border-slate-700 border-l-4 ' + borderColor + ' rounded-xl p-5 cursor-pointer hover:bg-slate-800 transition flex flex-col justify-between shadow-lg"><div><div class="flex justify-between items-start mb-2"><span class="text-[10px] text-blue-400 font-bold uppercase tracking-wider">' + (item.strategi || '') + '</span><span class="text-[9px] font-bold px-2.5 py-0.5 rounded-full border ' + statusBg + '">' + statusLabel + '</span></div><h4 class="text-white font-semibold text-sm leading-snug line-clamp-3 mt-2">' + item.aktiviti + '</h4></div><div class="mt-4"><div class="flex justify-between text-[10px] text-slate-400 mb-2"><span>' + currentNum + ' / ' + (item.sasaranPTj || '') + '</span><span class="font-bold text-white">' + Math.round(percent) + '%</span></div><div class="w-full bg-slate-700 rounded-full h-1.5 mb-3"><div class="bg-blue-500 h-1.5 rounded-full" style="width:' + percent + '%"></div></div><div class="flex justify-between items-center text-[9px] text-slate-500 font-semibold tracking-wide"><span class="truncate pr-2 uppercase">' + (item.inisiatif || '') + '</span><i class="fa-solid fa-chevron-right text-slate-600"></i></div></div></div>';
                 });
-                entriesHtml += '</div></div>';
+            } else {
+                container.className = "space-y-8";
+                var grouped = kpiData.reduce(function(acc, item) { if (!acc[item.lonjakan]) acc[item.lonjakan] = []; acc[item.lonjakan].push(item); return acc; }, {});
+                for (var lonjakan in grouped) {
+                    var items = grouped[lonjakan];
+                    var groupHtml = '<div class="mb-8"><div class="flex items-center space-x-3 mb-4 bg-slate-800/50 p-3 rounded-lg border border-slate-700"><div class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center"><i class="fa-solid fa-rocket"></i></div><h3 class="text-sm font-bold text-blue-300 uppercase tracking-wider">' + lonjakan + '</h3></div><div class="space-y-4">';
+                    items.forEach(function(item) {
+                        var targetNum = extractNumber(item.target);
+                        var isSelesai = item.current >= targetNum && targetNum > 0;
+                        var isBerjalan = item.current > 0 && !isSelesai;
+                        var status = isSelesai ? {label:'Selesai', cls:'bg-emerald-900/50 text-emerald-400'} : (isBerjalan ? {label:'Berjalan', cls:'bg-amber-900/50 text-amber-500'} : {label:'Belum Mula', cls:'bg-slate-800 text-slate-400'});
+                        var percent = targetNum > 0 ? Math.min(100, (item.current / targetNum) * 100) : 0;
+                        var lc = getLonjakanClass(item.lonjakan);
+                        var pb = lc === 'l7' ? 'progress-bar-l7' : lc === 'l8' ? 'progress-bar-l8' : 'progress-bar-l10';
+                        var entriesHtml = '';
+                        if(item.entries && item.entries.length > 0) {
+                            entriesHtml = '<div class="mt-5 pt-4 border-t border-slate-700"><h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3"><i class="fa-solid fa-list-ul mr-1.5"></i> Rekod Bukti (' + item.entries.length + ')</h5><ul class="space-y-2 max-h-[220px] overflow-y-auto pr-2 entries-scroll">';
+                            item.entries.forEach(function(e) {
+                                var fileDisplay = '';
+                                if(e.fileName && typeof e.fileName === 'string' && e.fileName.trim() !== '') {
+                                    var names = e.fileName.split(',').filter(function(s) { return s.trim().length > 0; });
+                                    if (names.length > 0) {
+                                        var safeUrlStr = (e.fileUrl || '').replace(/'/g, "\\'");
+                                        var safeNameStr = (e.fileName || '').replace(/'/g, "\\'");
+                                        fileDisplay = '<button onclick="openPreviewOverlay(\'' + safeUrlStr + '\', \'' + safeNameStr + '\')" class="ml-2 text-blue-400 text-[10px] font-semibold transition bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded"><i class="fa-solid fa-paperclip mr-1"></i>' + names.length + ' Lampiran</button>';
+                                    }
+                                }
+                                entriesHtml += '<li class="flex items-start justify-between text-xs bg-slate-800/30 p-3 rounded-lg border border-slate-700"><div><span class="font-bold text-slate-200 block text-sm mb-1">' + e.nama + '</span><span class="text-slate-400 text-[10px]"><i class="fa-regular fa-calendar mr-1 text-blue-400"></i>' + e.tarikh + fileDisplay + '</span></div></li>';
+                            });
+                            entriesHtml += '</ul></div>';
+                        }
+                        var qData = item.quarterData || {};
+                        var q1c = qData.q1_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+                        var q2c = qData.q2_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+                        var q3c = qData.q3_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+                        var q4c = qData.q4_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
+                        groupHtml += '<div class="bg-slate-800/50 border border-slate-700 rounded-xl p-5 hover:border-slate-600"><div class="flex flex-col md:flex-row justify-between gap-4"><div class="flex-1"><div class="flex items-start justify-between"><div><span class="text-[9px] font-bold tracking-widest text-blue-400 uppercase mb-1 block">' + item.initiative + '</span><h4 class="text-md font-bold text-white leading-snug">' + item.activity + '</h4></div><div class="flex flex-col items-end space-y-2"><span class="px-2.5 py-0.5 text-[9px] font-bold border rounded-full uppercase ' + status.cls + '">' + status.label + '</span><button onclick="btnOpenDeleteTindakanOverlay(\'' + item.id + '\')" class="admin-only w-7 h-7 bg-red-900/30 hover:bg-red-800 text-red-400 rounded-full flex items-center justify-center" title="Buang"><i class="fa-solid fa-trash-can text-[10px]"></i></button></div></div><div class="mt-3 text-[11px] text-slate-400"><i class="fa-regular fa-folder-open mr-1"></i> Bukti: <span class="font-medium text-slate-300">' + item.evidence + '</span></div>' + entriesHtml + '</div><div class="w-full md:w-64 border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-6 flex flex-col justify-center"><div class="flex justify-between text-[11px] mb-2"><span class="text-slate-400 font-bold uppercase tracking-wider">Pencapaian</span><span class="font-bold text-white">' + item.current + ' / ' + item.target + ' ' + item.unit + '</span></div><div class="progress-bar-bg mb-2 border border-slate-600"><div class="' + pb + '" style="width:' + percent + '%"></div></div><div class="flex justify-between text-[10px] mb-1.5 mt-1"><span class="text-slate-400 font-bold uppercase tracking-wider">Sukuan Q1-Q4</span></div><div class="w-full flex gap-1 h-2 mb-4"><div class="flex-1 rounded-full ' + q1c + '"></div><div class="flex-1 rounded-full ' + q2c + '"></div><div class="flex-1 rounded-full ' + q3c + '"></div><div class="flex-1 rounded-full ' + q4c + '"></div></div><button onclick="btnOpenUpdateModal(\'' + item.id + '\', event)" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] py-2.5 rounded-lg transition font-bold uppercase tracking-widest shadow-lg">Kemaskini Rekod</button></div></div></div>';
+                    });
+                    groupHtml += '</div></div>';
+                    container.innerHTML += groupHtml;
+                }
             }
-            var qData = item.quarterData || {};
-            var q1Class = qData.q1_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
-            var q2Class = qData.q2_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
-            var q3Class = qData.q3_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
-            var q4Class = qData.q4_status === 'tercapai' ? 'bg-green-500' : 'bg-slate-600';
-            var detailHtml = '<div class="glass-card rounded-2xl p-6 mb-8 animate-fadeIn" style="border-left:4px solid ' + borderColor + '">';
-            detailHtml += '<div class="flex items-start justify-between mb-4"><div><span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase block mb-1">' + item.initiative + '</span><h3 class="text-lg font-bold text-white">' + item.activity + '</h3><p class="text-xs text-slate-400 mt-1">' + item.lonjakan + '</p></div><button onclick="closeKpiDetail()" class="text-slate-500 hover:text-slate-300 transition"><i class="fa-solid fa-times text-lg"></i></button></div>';
-            detailHtml += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Sasaran</p><p class="text-2xl font-bold text-white">' + item.target + ' <span class="text-sm text-slate-400">' + item.unit + '</span></p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Pencapaian Semasa</p><p class="text-2xl font-bold text-white">' + item.current + ' <span class="text-sm text-slate-400">' + item.unit + '</span></p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Peratusan</p><p class="text-2xl font-bold text-white">' + Math.round(percent) + '%</p></div></div>';
-            detailHtml += '<div class="progress-bar-bg mb-4 h-3"><div class="progress-bar-' + lc + '" style="width:' + percent + '%"></div></div>';
-            detailHtml += '<div class="mb-4"><p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Kemajuan Sukuan (Q1-Q4)</p><div class="flex gap-1 h-3 mb-1"><div class="flex-1 rounded-full ' + q1Class + '" title="Q1"></div><div class="flex-1 rounded-full ' + q2Class + '" title="Q2"></div><div class="flex-1 rounded-full ' + q3Class + '" title="Q3"></div><div class="flex-1 rounded-full ' + q4Class + '" title="Q4"></div></div></div>';
-            detailHtml += '<div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-slate-700"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-circle-info mr-1 text-blue-400"></i> Definisi Operasi (OD)</h5><p class="text-sm text-slate-300 leading-relaxed">' + item.od + '</p></div>';
-            detailHtml += '<div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-slate-700"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-chart-simple mr-1 text-blue-400"></i> Petunjuk Prestasi (PI) &amp; Bukti</h5><p class="text-sm text-slate-300 mb-2">' + item.pi + '</p><p class="text-xs text-slate-400"><i class="fa-regular fa-folder-open mr-1"></i> ' + item.evidence + '</p></div>';
-            detailHtml += entriesHtml;
-            detailHtml += '<div class="flex gap-3"><button onclick="btnOpenUpdateModal(\'' + item.id + '\', event)" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition shadow-lg"><i class="fa-solid fa-pen-to-square mr-1"></i> Kemaskini Rekod</button><button onclick="closeKpiDetail()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-bold rounded-lg transition">Tutup</button></div>';
-            detailHtml += '</div>';
-            panel.innerHTML = detailHtml;
-            panel.classList.remove('hidden');
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        function closeKpiDetail() { var panel = document.getElementById('kpiDetailPanel'); panel.classList.add('hidden'); panel.innerHTML = ''; }
-
-        var currentPSUFilter = 'all';
-        function setPSUFilter(val, btn) {
-            currentPSUFilter = val;
-            var chips = document.querySelectorAll('.psu-chip');
-            chips.forEach(function(c) { c.classList.remove('active'); });
-            if (btn) btn.classList.add('active');
-            renderPSUGrid();
         }
 
-        function getPSUStatusClass(status) {
-            if (status === 'Selesai') return 'status-badge-selesai';
-            if (status === 'Berjalan') return 'status-badge-berjalan';
-            return 'status-badge-belum';
-        }
-
-        function getPSUBarColor(strategi) {
-            if (strategi.includes('SP1')) return 'progress-bar-l7';
-            if (strategi.includes('SP2')) return 'progress-bar-l10';
-            return 'progress-bar-l8';
-        }
-
-        function renderPSUGrid() {
-            var grid = document.getElementById('psuGrid');
-            if (!grid) return;
-            var filtered = PSU_DATA;
-            if (currentPSUFilter !== 'all') {
-                filtered = PSU_DATA.filter(function(p) { return p.strategi.includes(currentPSUFilter); });
-            }
-            var html = '';
-            filtered.forEach(function(item) {
-                var status = item.status || 'Belum Mula';
-                var statusClass = getPSUStatusClass(status);
-                var barColor = getPSUBarColor(item.strategi);
-                var pencapaianNum = parseFloat(item.pencapaian) || 0;
-                var targetStr = item.sasaranUniv || '';
-                var targetNum = parseFloat(targetStr.match(/\d+/)) || 100;
-                var percent = targetNum > 0 ? Math.min(100, (pencapaianNum / targetNum) * 100) : 0;
-                html += '<div class="kpi-card kpi-card-l8" onclick="expandPSU(\'' + item.id + '\')" style="border-left-color:#06b6d4">';
-                html += '<div class="flex items-start justify-between mb-2"><span class="text-xs font-bold uppercase tracking-wider text-cyan-400">' + item.no + '</span><div class="flex items-center gap-2"><span class="px-2 py-0.5 text-[10px] font-bold rounded-full ' + statusClass + '">' + status + '</span></div></div>';
-                html += '<h4 class="text-sm font-semibold text-slate-200 mb-3 leading-snug line-clamp-2">' + item.aktiviti + '</h4>';
-                html += '<div class="flex items-center justify-between text-[11px] text-slate-400 mb-1"><span class="text-cyan-400 font-bold text-[10px]">' + item.strategi + '</span><span class="font-bold text-white">' + Math.round(percent) + '%</span></div>';
-                html += '<div class="progress-bar-bg mb-2"><div class="' + barColor + '" style="width:' + percent + '%;background:linear-gradient(90deg,#06b6d4,#22d3ee)"></div></div>';
-                html += '<div class="text-[10px] text-slate-500"><span>Sasaran: ' + item.sasaranPTj + '</span></div>';
-                html += '</div>';
-            });
-            if (html === '') html = '<div class="col-span-full text-center text-slate-500 py-8 text-sm">Tiada aktiviti PSU ditemui.</div>';
-            grid.innerHTML = html;
-        }
-
-        function expandPSU(id) {
+        function openPsuModal(id) {
             var item = PSU_DATA.find(function(p) { return p.id === id; });
             if (!item) return;
-            var panel = document.getElementById('psuDetailPanel');
-            var pencapaianNum = parseFloat(item.pencapaian) || 0;
+            document.getElementById('psu_m_initiative').textContent = item.inisiatif || '';
+            document.getElementById('psu_m_activity').textContent = item.aktiviti;
+            document.getElementById('psu_m_lonjakan').textContent = item.strategi || '';
             var targetStr = item.sasaranUniv || '';
-            var targetNum = parseFloat(targetStr.match(/\d+/)) || 100;
-            var percent = targetNum > 0 ? Math.min(100, (pencapaianNum / targetNum) * 100) : 0;
-            var detailHtml = '<div class="glass-card rounded-2xl p-6 animate-fadeIn" style="border-left:4px solid #06b6d4">';
-            detailHtml += '<div class="flex items-start justify-between mb-4"><div><span class="text-[10px] font-bold tracking-widest text-cyan-400 uppercase block mb-1">' + item.strategi + '</span><h3 class="text-lg font-bold text-white">' + item.aktiviti + '</h3><p class="text-xs text-slate-400 mt-1">' + (item.inisiatif || 'Tiada maklumat') + '</p></div><button onclick="closePSUDetail()" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-times text-lg"></i></button></div>';
-            detailHtml += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Sasaran Univ</p><p class="text-lg font-bold text-white">' + item.sasaranUniv + '</p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Sasaran PTj</p><p class="text-lg font-bold text-white">' + item.sasaranPTj + '</p></div><div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700"><p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Pencapaian</p><p class="text-lg font-bold text-cyan-400">' + Math.round(percent) + '%</p></div></div>';
-            detailHtml += '<div class="progress-bar-bg mb-4 h-3"><div style="width:' + percent + '%;height:100%;background:linear-gradient(90deg,#06b6d4,#22d3ee);border-radius:9999px;transition:width 0.7s ease"></div></div>';
-            detailHtml += '<div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-slate-700"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-bullseye mr-1 text-cyan-400"></i> Indikator Pengukuran</h5><p class="text-sm text-slate-300">' + item.indikator + '</p></div>';
-            detailHtml += '<div class="flex gap-3"><button onclick="closePSUDetail()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-bold rounded-lg transition">Tutup</button></div>';
-            detailHtml += '</div>';
-            panel.innerHTML = detailHtml;
-            panel.classList.remove('hidden');
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var targetNum = parseFloat((targetStr.match(/\d+/) || [0])[0]) || 100;
+            var currentNum = parseFloat(item.pencapaian) || 0;
+            var percent = targetNum > 0 ? Math.min(100, (currentNum / targetNum) * 100) : 0;
+            document.getElementById('psu_m_target').innerHTML = item.sasaranUniv;
+            document.getElementById('psu_m_current').innerHTML = item.sasaranPTj;
+            document.getElementById('psu_m_percent').textContent = Math.round(percent) + '%';
+            document.getElementById('psu_m_progressbar').style.width = percent + '%';
+            document.getElementById('psu_m_indikator').textContent = item.indikator || 'Tiada maklumat';
+            document.getElementById('psu_m_entries_count').textContent = '0';
+            document.getElementById('psu_m_entries_container').innerHTML = '<p class="text-slate-500 text-xs">Tiada rekod bukti.</p>';
+            document.getElementById('psuUpdateModal').style.display = 'flex';
         }
-        function closePSUDetail() { var panel = document.getElementById('psuDetailPanel'); panel.classList.add('hidden'); panel.innerHTML = ''; }
+        function closePsuModal() { document.getElementById('psuUpdateModal').style.display = 'none'; }
 
         function openPreviewOverlay(urlStr, nameStr) {
             if (!urlStr || urlStr === 'undefined') { showToast("Tiada fail dilampirkan.", "error"); return; }
