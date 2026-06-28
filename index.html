@@ -467,14 +467,26 @@
 
     <script>
         Chart.register(ChartDataLabels);
-        
-        let isAdmin = true;
-        let pendingCallback = null;
-        const CURRENT_USER_EMAIL = "<?!= userEmail ?>";
-        const ADMIN_LIST = <?!= adminListJson ?>;
-        let isAuthenticated = CURRENT_USER_EMAIL && ADMIN_LIST && ADMIN_LIST.includes(CURRENT_USER_EMAIL);
-        const GOOGLE_SCRIPT_URL = window.location.href.split('?')[0];
-        const PSU_DATA = <?!= PSU_DATA ?>;
+
+        let kpiData = [];
+        let isAuthenticated = false;
+        let CURRENT_USER_EMAIL = "";
+        let ADMIN_LIST = [];
+        let currentEditId = null;     
+        let editingEntryId = null;    
+        let entryToDelete = null; 
+        let selectedFilesArray = []; 
+        let progressChart;
+
+        function gsRun(functionName, ...args) {
+            return new Promise((resolve, reject) => {
+                if (typeof google === 'undefined' || typeof google.script === 'undefined') {
+                    reject(new Error("Bukan dalam Google Apps Script."));
+                    return;
+                }
+                google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[functionName](...args);
+            });
+        }
 
         function gsRun(functionName, ...args) {
             return new Promise((resolve, reject) => {
@@ -495,7 +507,7 @@
 
         function showAccessDenied() {
             document.getElementById('deniedUserEmail').textContent = CURRENT_USER_EMAIL || 'tidak dikenal pasti';
-            document.getElementById('accountChooserLink').href = 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(GOOGLE_SCRIPT_URL);
+            document.getElementById('accountChooserLink').href = 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(window.location.href.split('?')[0]);
             document.getElementById('accessDeniedOverlay').classList.remove('hidden');
             document.getElementById('accessDeniedOverlay').style.display = 'flex';
         }
@@ -591,9 +603,9 @@
         function renderPSUGrid() {
             var grid = document.getElementById('psuGrid');
             if (!grid) return;
-            var filtered = PSU_DATA;
+            var filtered = kpiData.filter(item => item.type === 'PSU');
             if (currentPSUFilter !== 'all') {
-                filtered = PSU_DATA.filter(function(p) { return p.strategi && p.strategi.includes(currentPSUFilter); });
+                filtered = filtered.filter(p => p.lonjakan && p.lonjakan.includes(currentPSUFilter));
             }
             var html = '';
             filtered.forEach(function(item) {
@@ -624,7 +636,7 @@
         function renderPTAGrid() {
             var grid = document.getElementById('kpiGrid');
             if (!grid) return;
-            var filtered = kpiData;
+            var filtered = kpiData.filter(item => item.type === 'PTA');
             if (currentPTAFilter !== 'all') {
                 filtered = kpiData.filter(function(k) { return getLonjakanClass(k.lonjakan) === currentPTAFilter; });
             }
@@ -1021,27 +1033,57 @@
             toggleSyncUI(true);
             try {
                 const kpiInfoList = await gsRun('getKpiInfoList');
+                const psuInfoList = await gsRun('getPelanStrategikData');
                 const statusData = await gsRun('getKpiStatus');
                 
-                if (kpiInfoList && kpiInfoList.length > 0) {
-                    const oldReverseMapping = {}; for (const [key, val] of Object.entries(kpiMapping)) { oldReverseMapping[val] = key; }
-                    kpiData = []; for(let key in kpiMapping) delete kpiMapping[key]; let newIdCounter = 1000; 
-                    kpiInfoList.forEach(info => {
-                        let id = oldReverseMapping[info.idKpi] ? parseInt(oldReverseMapping[info.idKpi]) : newIdCounter++;
-                        kpiMapping[id] = info.idKpi;
-                        let item = { id: id, lonjakan: info.lonjakan, initiative: info.initiative || "Pelaksanaan PTA", activity: info.activity, od: info.od, pi: info.pi, evidence: info.evidence, target: String(info.target), unit: info.unit, entries: [], quarterTargets: { q1: info.q1_target || "-", q2: info.q2_target || "-", q3: info.q3_target || "-", q4: info.q4_target || "-" }, current: 0, quarterData: {} };
-                        if (statusData && statusData[info.idKpi]) { const status = statusData[info.idKpi]; item.current = parseFloat(status.current) || 0; item.quarterData = status.quarterData || {}; item.entries = status.entries || []; }
+                kpiData = [];
+                let combinedInfo = [];
+                if (kpiInfoList) combinedInfo.push(...kpiInfoList.map(k => ({...k, type: 'PTA'})));
+                if (psuInfoList) combinedInfo.push(...psuInfoList.map(p => ({...p, type: 'PSU'})));
+                
+                if (combinedInfo.length > 0) {
+                    combinedInfo.forEach(info => {
+                        let idKpi = info.idKpi || info.id;
+                        let item = { 
+                            id: idKpi, 
+                            type: info.type, 
+                            lonjakan: info.lonjakan || info.strategi || 'Unknown', 
+                            initiative: info.initiative || info.inisiatif || "Pelaksanaan Sistem", 
+                            activity: info.activity || info.aktiviti || 'Unknown', 
+                            od: info.od || info.catatan || "Tiada maklumat.", 
+                            pi: info.pi || info.indikator || "Tiada indikator.", 
+                            evidence: info.evidence || info.bukti || "Tiada", 
+                            target: String(info.target || info.sasaranPTj || info.sasaranUniv || "1"), 
+                            unit: info.unit || "", 
+                            entries: [], 
+                            quarterTargets: { q1: info.q1_target || "-", q2: info.q2_target || "-", q3: info.q3_target || "-", q4: info.q4_target || "-" }, 
+                            current: 0, 
+                            quarterData: {} 
+                        };
+                        if (statusData && statusData[idKpi]) { 
+                            const st = statusData[idKpi]; 
+                            item.current = parseFloat(st.current) || parseFloat(info.pencapaian) || 0; 
+                            item.quarterData = st.quarterData || {}; 
+                            item.entries = st.entries || []; 
+                        } else {
+                            item.current = parseFloat(info.pencapaian) || 0;
+                        }
                         kpiData.push(item);
                     });
-                } else if (statusData) {
-                    for (const [kpiId, status] of Object.entries(statusData)) { const entryId = Object.keys(kpiMapping).find(key => kpiMapping[key] === kpiId); if (entryId) { const item = kpiData.find(k => k.id == entryId); if (item) { item.current = parseFloat(status.current) || 0; item.quarterData = status.quarterData || {}; item.entries = status.entries || []; } } }
                 }
                 updateDashboard();
-                if (currentEditId) renderModalEntriesList(currentEditId);
+                if (currentEditId) {
+                    const checkPsuOpen = document.getElementById('psuUpdateModal').style.display === 'flex';
+                    if (checkPsuOpen) openPsuModal(currentEditId);
+                    else renderModalEntriesList(currentEditId);
+                }
             } catch (err) { showToast('Gagal menyegerak: ' + err.message, 'error'); } finally { toggleSyncUI(false); }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ms-MY', dateOptions);
+            
             try {
                 if (document.getElementById('progressChart')) {
                     const ctx = document.getElementById('progressChart').getContext('2d');
@@ -1055,19 +1097,30 @@
                     });
                 }
             } catch(e) {}
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ms-MY', dateOptions);
-            
-            document.getElementById('dashboardScreen').style.display = 'flex';
-            document.getElementById('userIdentifier').textContent = CURRENT_USER_EMAIL || 'Akses Pantau';
 
-            if (!isAuthenticated) {
+            try {
+                const session = await gsRun('getSessionData');
+                CURRENT_USER_EMAIL = session.email || "";
+                ADMIN_LIST = session.admins || [];
+                
+                if (CURRENT_USER_EMAIL && ADMIN_LIST.includes(CURRENT_USER_EMAIL)) {
+                    isAuthenticated = true;
+                }
+                
+                document.getElementById('userIdentifier').textContent = CURRENT_USER_EMAIL || 'Akses Pantau';
+                document.getElementById('dashboardScreen').style.display = 'flex';
+                
+                if (!isAuthenticated) {
+                    showAccessDenied();
+                } else {
+                    syncData();
+                }
+            } catch (err) {
+                console.error("Gagal mendapatkan sesi: ", err);
+                document.getElementById('userIdentifier').textContent = "Ralat Sesi";
                 showAccessDenied();
             }
 
-            updateDashboard(); 
-            syncData();
-            
             if (typeof feather !== 'undefined') feather.replace();
         });
 
