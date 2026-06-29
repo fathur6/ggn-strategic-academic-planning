@@ -31,6 +31,7 @@ function doGet(e) {
   if (e && e.parameter && e.parameter.action === "getKpiStatus") {
     return ContentService.createTextOutput(JSON.stringify({ success: true, data: getKpiStatus(), kpiInfo: getKpiInfoList() })).setMimeType(ContentService.MimeType.JSON);
   }
+
   return HtmlService.createHtmlOutputFromFile('index')
       .setTitle('Dashboard Pemantauan PTA 2026 - PPS')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
