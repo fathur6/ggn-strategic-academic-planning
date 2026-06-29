@@ -37,60 +37,6 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }
 
-function getAdminList() {
-  const ss = getSS();
-  let sheet = ss.getSheetByName("Senarai Admin");
-  if (!sheet) {
-    sheet = ss.insertSheet("Senarai Admin");
-    sheet.appendRow(["Email Pentadbir"]);
-    sheet.getRange("A1").setFontWeight("bold").setBackground("#dbeafe");
-    const currentUser = Session.getEffectiveUser().getEmail();
-    if (currentUser) sheet.appendRow([currentUser]);
-    sheet.autoResizeColumn(1);
-  }
-  const data = sheet.getDataRange().getValues();
-  const admins = [];
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0]) admins.push(data[i][0].toString().trim().toLowerCase());
-  }
-  return admins;
-}
-
-function isCurrentUserAdmin() {
-  const userEmail = Session.getActiveUser().getEmail().toLowerCase().trim();
-  const admins = getAdminList();
-  return admins.includes(userEmail);
-}
-
-function addAdminWeb(newEmail) {
-  if (!isCurrentUserAdmin()) throw new Error("Akses dinafikan.");
-  newEmail = newEmail.toString().trim().toLowerCase();
-  if (!newEmail || !newEmail.includes('@')) throw new Error("Format emel tidak sah.");
-  const ss = getSS();
-  const sheet = ss.getSheetByName("Senarai Admin");
-  const currentAdmins = getAdminList();
-  if (currentAdmins.includes(newEmail)) throw new Error("Emel sudah wujud.");
-  sheet.appendRow([newEmail]);
-  return getAdminList();
-}
-
-function removeAdminWeb(emailToRemove) {
-  if (!isCurrentUserAdmin()) throw new Error("Akses dinafikan.");
-  emailToRemove = emailToRemove.toString().trim().toLowerCase();
-  const currentUser = Session.getActiveUser().getEmail().toLowerCase().trim();
-  if (emailToRemove === currentUser) throw new Error("Tidak boleh buang diri sendiri.");
-  const ss = getSS();
-  const sheet = ss.getSheetByName("Senarai Admin");
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0].toString().trim().toLowerCase() === emailToRemove) {
-      sheet.deleteRow(i + 1);
-      break;
-    }
-  }
-  return getAdminList();
-}
-
 function getSessionData() {
   var userEmail = "";
   try { userEmail = Session.getActiveUser().getEmail(); } catch(ex) {}
@@ -100,7 +46,13 @@ function getSessionData() {
     try { setupPelanStrategikUniversiti(); props.setProperty('PSU_SETUP_DONE', 'true'); } catch(e) {}
   }
   
-  var admins = getAdminList();
+  var adminListJson = props.getProperty('ADMIN_EMAILS');
+  var admins = ["SET_ADMIN_EMAILS_IN_SCRIPT_PROPERTIES"];
+  if (adminListJson) {
+    try { admins = JSON.parse(adminListJson); } catch(e) {}
+  } else {
+    props.setProperty('ADMIN_EMAILS', JSON.stringify(admins));
+  }
   
   return { email: userEmail, admins: admins };
 }
